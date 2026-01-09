@@ -49,14 +49,15 @@ const MotionDiv = motion.div as any;
 
 export function ProcessTimeline() {
     return (
-        <section className="relative py-10 sm:py-15 lg:py-20 overflow-hidden">
-            <div className="container mx-auto px-6 sm:px-12">
-                <div className="mb-24 text-center">
+        <section className="relative py-8 sm:py-12 md:py-15 lg:py-20 overflow-hidden">
+            <div className="container mx-auto px-4 sm:px-6 md:px-12">
+                <div className="mb-12 sm:mb-16 lg:mb-24 text-center">
                     <MotionDiv
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md px-4 py-1.5 text-sm font-medium text-cyan-400 mb-6"
+                        transition={{ duration: 0.4 }}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md px-3 py-1 sm:px-4 sm:py-1.5 text-xs sm:text-sm font-medium text-cyan-400 mb-4 sm:mb-6"
                     >
                         Seamless Experience
                     </MotionDiv>
@@ -64,7 +65,8 @@ export function ProcessTimeline() {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-4xl font-extrabold tracking-tight sm:text-6xl mb-6 bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent"
+                        transition={{ duration: 0.4 }}
+                        className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-extrabold tracking-tight mb-4 sm:mb-6 bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent"
                     >
                         Streamlined Workflow
                     </MotionH2>
@@ -72,14 +74,14 @@ export function ProcessTimeline() {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ delay: 0.1 }}
-                        className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed"
+                        transition={{ duration: 0.4, delay: 0.05 }}
+                        className="text-sm sm:text-base md:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed px-4"
                     >
                         From setup to settlement, WorkNest handles the heavy lifting so you can focus on building what matters.
                     </MotionP>
                 </div>
 
-                <div className="relative rounded-[2.5rem] border border-white/10 bg-white/5 backdrop-blur-2xl p-8 sm:p-12 md:p-16 shadow-2xl overflow-hidden group">
+                <div className="border relative rounded-[2.5rem] border border-white/10 bg-white/5 backdrop-blur-2xl p-6 sm:p-10 md:p-14 shadow-2xl overflow-hidden group">
                     {/* Animated Gradient Border */}
                     <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-transparent to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
@@ -103,7 +105,7 @@ export function ProcessTimeline() {
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         whileInView={{ opacity: 1, scale: 1 }}
                                         viewport={{ once: true }}
-                                        transition={{ delay: index * 0.2 }}
+                                        transition={{ duration: 0.4, delay: index * 0.1 }}
                                         className="flex flex-col items-center text-center group/item"
                                     >
                                         <div className={cn(
@@ -120,8 +122,8 @@ export function ProcessTimeline() {
                                         </div>
 
                                         <div className="space-y-3">
-                                            <h3 className="text-xl font-bold text-white group-hover/item:text-primary transition-colors">{step.title}</h3>
-                                            <p className="text-slate-400 text-sm leading-relaxed px-4">
+                                            <h3 className="text-lg sm:text-xl font-bold text-white group-hover/item:text-primary transition-colors">{step.title}</h3>
+                                            <p className="text-slate-400 text-xs sm:text-sm leading-relaxed px-2 sm:px-4">
                                                 {step.description}
                                             </p>
                                         </div>
@@ -143,7 +145,8 @@ export function ProcessTimeline() {
                                     initial={{ opacity: 0, x: -20 }}
                                     whileInView={{ opacity: 1, x: 0 }}
                                     viewport={{ once: true }}
-                                    className="relative pl-24 group/item"
+                                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                                    className="relative pl-20 sm:pl-24 group/item"
                                 >
                                     <div className={cn(
                                         "absolute left-0 top-0 flex h-16 w-16 items-center justify-center rounded-2xl border bg-slate-950/50 backdrop-blur-xl shadow-xl z-10 border-white/10 group-hover/item:border-primary/50 transition-all",
@@ -154,8 +157,8 @@ export function ProcessTimeline() {
                                     </div>
 
                                     <div className="pt-2">
-                                        <h3 className="text-2xl font-bold mb-2 text-white">{step.title}</h3>
-                                        <p className="text-slate-400 leading-relaxed">
+                                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 text-white">{step.title}</h3>
+                                        <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
                                             {step.description}
                                         </p>
                                     </div>

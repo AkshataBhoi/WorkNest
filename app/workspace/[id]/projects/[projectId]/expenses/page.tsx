@@ -204,7 +204,7 @@ export default function ProjectExpensesPage() {
                                         <IndianRupee className="h-5 w-5 text-primary" />
                                         Expense Log
                                     </h2>
-                                    <div className="flex items-center gap-2">
+                                    <div className="hidden lg:flex items-center gap-2">
                                         <Button variant="outline" size="sm" className="rounded-xl h-9 border-white/10 bg-white/5">
                                             <Filter className="h-3.5 w-3.5 mr-2 opacity-60" />
                                             Filter
@@ -215,15 +215,17 @@ export default function ProjectExpensesPage() {
                                 <div className="space-y-3">
                                     {project.expenses.length > 0 ? (
                                         <div className="space-y-2">
-                                            {[...project.expenses].reverse().map((expense) => {
+                                            {[...project.expenses]
+                                                .reverse()
+                                                .map((expense) => {
                                                 const paidBy = workspace.members.find(m => m.id === expense.paidById);
                                                 return (
-                                                    <div key={expense.id} className="group flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                                    <div key={expense.id} className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all">
+                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                            <div className="h-8 w-8 sm:h-8 sm:w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                                                                 <IndianRupee className="h-4 w-4" />
                                                             </div>
-                                                            <div>
+                                                            <div className="flex-1 min-w-0">
                                                                 <h4 className="font-bold text-sm leading-tight">{expense.title}</h4>
                                                                 <div className="flex items-center gap-2 mt-0.5">
                                                                     <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
@@ -243,23 +245,21 @@ export default function ProjectExpensesPage() {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div className="text-right flex items-center gap-4">
-                                                            <div className="hidden md:block">
-                                                                <select
-                                                                    value={expense.status}
-                                                                    onChange={(e) => updateExpenseStatus(workspaceId, projectId, expense.id, e.target.value as any)}
-                                                                    className={cn(
-                                                                        "text-[10px] font-bold uppercase tracking-wider bg-transparent border-none focus:ring-0 cursor-pointer outline-none",
-                                                                        expense.status === "Paid" ? "text-emerald-500" :
-                                                                            expense.status === "Pending" ? "text-amber-500" : "text-indigo-500"
-                                                                    )}
-                                                                >
-                                                                    <option value="Paid" className="bg-background">Paid</option>
-                                                                    <option value="Pending" className="bg-background">Pending</option>
-                                                                    <option value="Cleared" className="bg-background">Cleared</option>
-                                                                </select>
-                                                            </div>
-                                                            <div className="flex flex-col items-end">
+                                                        <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-3">
+                                                            <select
+                                                                value={expense.status}
+                                                                onChange={(e) => updateExpenseStatus(workspaceId, projectId, expense.id, e.target.value as any)}
+                                                                className={cn(
+                                                                    "text-xs sm:text-[10px] font-bold uppercase tracking-wider bg-background/80 border rounded-lg px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer transition-all flex-1 sm:flex-none min-w-[100px] sm:min-w-0",
+                                                                    expense.status === "Paid" ? "text-emerald-500 border-emerald-500/30 bg-emerald-500/10" :
+                                                                        expense.status === "Pending" ? "text-amber-500 border-amber-500/30 bg-amber-500/10" : "text-indigo-500 border-indigo-500/30 bg-indigo-500/10"
+                                                                )}
+                                                            >
+                                                                <option value="Paid" className="bg-background">Paid</option>
+                                                                <option value="Pending" className="bg-background">Pending</option>
+                                                                <option value="Cleared" className="bg-background">Cleared</option>
+                                                            </select>
+                                                            <div className="flex flex-col items-end shrink-0">
                                                                 <span className="font-black text-sm">₹{expense.amount.toLocaleString()}</span>
                                                                 <span className="text-[9px] text-muted-foreground">{expense.date}</span>
                                                             </div>

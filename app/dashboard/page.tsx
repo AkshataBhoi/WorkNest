@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Users, Search, MoreHorizontal, ArrowRight, Calendar, Activity, LayoutDashboard } from "lucide-react";
+import { Plus, Users, Search, MoreHorizontal, ArrowRight, Calendar, Activity, LayoutDashboard, Eye, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,11 @@ export default function DashboardPage() {
         ws.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ws.description.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    // Calculate total expense for each workspace
+    const getTotalExpense = (workspace: typeof workspaces[0]) => {
+        return workspace.projects.reduce((sum, project) => sum + project.totalExpense, 0);
+    };
 
     return (
         <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
@@ -101,8 +106,8 @@ export default function DashboardPage() {
                                 </div>
                             </div> */}
 
-                            {/* Enhanced Table */}
-                            <div className="group relative rounded-3xl border border-white/10 bg-card/30 backdrop-blur-xl transition-all duration-300 hover:border-white/20">
+                            {/* Desktop Table - Hidden on mobile */}
+                            <div className="hidden md:block group relative rounded-3xl border border-white/10 bg-card/30 backdrop-blur-xl transition-all duration-300 hover:border-white/20">
                                 <div className="w-full overflow-auto">
                                     <table className="w-full text-sm text-left border-collapse">
                                         <thead>
@@ -233,6 +238,101 @@ export default function DashboardPage() {
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         className="text-center py-20"
+                                    >
+                                        <div className="inline-flex items-center justify-center h-16 w-16 rounded-3xl bg-white/5 mb-4">
+                                            <LayoutDashboard className="h-8 w-8 text-muted-foreground" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-foreground mb-1">No workspaces found</h3>
+                                        <p className="text-muted-foreground">Try adjusting your search query</p>
+                                    </MotionDiv>
+                                )}
+                            </div>
+
+                            {/* Mobile Card View - Visible only on mobile */}
+                            <div className="md:hidden space-y-4">
+                                <AnimatePresence mode="popLayout">
+                                    {filteredWorkspaces.map((ws, index) => (
+                                        <MotionDiv
+                                            key={ws.id}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            transition={{ delay: index * 0.05 }}
+                                            className="group relative rounded-2xl border border-white/10 bg-card/30 backdrop-blur-xl p-5 transition-all duration-300 hover:border-white/20"
+                                        >
+                                            <div className="flex items-start justify-between gap-4 mb-4">
+                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <div className={cn(
+                                                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border bg-gradient-to-br from-background/50 to-card shadow-inner",
+                                                        ws.role === "Owner" ? "border-primary/20" : "border-white/10"
+                                                    )}>
+                                                        {ws.role === "Owner" ? (
+                                                            <LayoutDashboard className="h-5 w-5 text-primary" />
+                                                        ) : (
+                                                            <Users className="h-5 w-5 text-muted-foreground" />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0 flex-1">
+                                                        <span className="font-bold text-base text-foreground truncate">
+                                                            {ws.name}
+                                                        </span>
+                                                        <span className="text-xs font-medium text-primary mt-0.5 tracking-wide uppercase opacity-70">
+                                                            {ws.role}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-between gap-4 mb-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={cn(
+                                                        "h-2 w-2 rounded-full inline-block",
+                                                        ws.status === "In Progress" ? "bg-amber-400" :
+                                                            ws.status === "Completed" ? "bg-emerald-400" :
+                                                                ws.status === "On Hold" ? "bg-rose-400" : "bg-slate-400"
+                                                    )} />
+                                                    <span className={cn(
+                                                        "font-medium text-sm",
+                                                        ws.status === "In Progress" ? "text-amber-400" :
+                                                            ws.status === "Completed" ? "text-emerald-400" :
+                                                                ws.status === "On Hold" ? "text-rose-400" : "text-slate-400"
+                                                    )}>
+                                                        {ws.status}
+                                                    </span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-xs text-muted-foreground uppercase tracking-widest block mb-1">Expense</span>
+                                                    <span className="text-base font-bold text-foreground">
+                                                        ${getTotalExpense(ws).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-end gap-2 pt-4 border-t border-white/5">
+                                                <Link
+                                                    href={`/workspace/${ws.id}`}
+                                                    className="inline-flex items-center justify-center h-10 w-10 rounded-xl border border-white/5 bg-white/5 hover:bg-primary hover:text-primary-foreground hover:border-primary/50 transition-all duration-300"
+                                                    title="Open Workspace"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Link>
+                                                {/* <Link
+                                                    href={`/workspace/${ws.id}`}
+                                                    className="inline-flex items-center justify-center h-10 w-10 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                                                    title="Manage Workspace"
+                                                >
+                                                    <Settings className="h-4 w-4" />
+                                                </Link> */}
+                                            </div>
+                                        </MotionDiv>
+                                    ))}
+                                </AnimatePresence>
+
+                                {filteredWorkspaces.length === 0 && (
+                                    <MotionDiv
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="text-center py-20 rounded-2xl border border-white/10 bg-card/30 backdrop-blur-xl"
                                     >
                                         <div className="inline-flex items-center justify-center h-16 w-16 rounded-3xl bg-white/5 mb-4">
                                             <LayoutDashboard className="h-8 w-8 text-muted-foreground" />

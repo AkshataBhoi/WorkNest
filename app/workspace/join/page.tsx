@@ -1,13 +1,12 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   ArrowLeft,
   AlertCircle,
   Key,
-  Users,
   Mail,
   ChevronRight,
   ArrowRight,
@@ -26,7 +25,6 @@ import { cn } from "@/lib/utils";
 const MotionDiv = motion.div as any;
 
 export default function JoinWorkspacePage() {
-  const router = useRouter();
   const { joinWorkspace } = useWorkspaces();
 
   const [isLoading, setIsLoading] = React.useState(false);
@@ -35,6 +33,8 @@ export default function JoinWorkspacePage() {
   const [email, setEmail] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [previewReady, setPreviewReady] = React.useState(false);
+
+  const router = useRouter();
 
   const handleCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,9 +90,9 @@ export default function JoinWorkspacePage() {
             <div className="text-center space-y-2">
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-primary transition"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors group mb-4"
               >
-                <ArrowLeft className="h-3 w-3" />
+                <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
                 Back to Dashboard
               </Link>
               <h1 className="text-4xl font-extrabold tracking-tight">

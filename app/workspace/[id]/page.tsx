@@ -147,7 +147,7 @@ export default function WorkspaceDetailsPage() {
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-12">
                         {/* MAIN CONTENT – TEAM RESPONSIBILITIES */}
-                        <div className="lg:col-span-7 space-y-6">
+                        <div className="lg:col-span-7 space-y-6 order-2 lg:order-1">
                             <div className="glass-panel p-8 rounded-3xl space-y-8 shadow-sm h-full">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-xl font-bold flex items-center gap-2">
@@ -273,38 +273,13 @@ export default function WorkspaceDetailsPage() {
                         </div>
 
                         {/* SIDEBAR – MEMBERS & PROJECTS */}
-                        <div className="lg:col-span-5 space-y-6">
-                            <div className="glass-panel p-6 rounded-3xl space-y-6">
-                                <h2 className="text-lg font-bold flex items-center gap-2">
-                                    <User className="h-5 w-5 text-primary" />
-                                    Team Members
-                                </h2>
-
-                                <div className="space-y-3">
-                                    {workspace.members.map((member: any) => (
-                                        <div
-                                            key={member.id}
-                                            className="flex items-center gap-3 p-3 rounded-2xl bg-background/40 border border-white/5 hover:border-primary/30 transition-all group"
-                                        >
-                                            <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-primary/10 to-indigo-500/10 flex items-center justify-center text-primary font-bold border border-primary/20 group-hover:scale-105 transition-transform shadow-inner text-xs">
-                                                {member.name.split(' ').map((n: string) => n[0]).join('')}
-                                            </div>
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="font-bold text-xs truncate">{member.name}</span>
-                                                <span className="text-[10px] text-muted-foreground truncate uppercase tracking-widest font-black">
-                                                    {member.id === "user-1" ? "Owner" : "Member"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="glass-panel p-6 rounded-3xl space-y-6">
+                        <div className="lg:col-span-5 space-y-6 order-1 lg:order-2">
+                            {/* Projects Section - Show first on mobile */}
+                            <div className="glass-panel p-6 rounded-3xl space-y-6 order-1 lg:order-2">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-lg font-bold flex items-center gap-2">
                                         <Shield className="h-5 w-5 text-primary" />
-                                        Projects
+                                        Active Projects
                                     </h2>
                                     {workspace.role === "Owner" && !isCreatingProject && (
                                         <Button
@@ -367,6 +342,33 @@ export default function WorkspaceDetailsPage() {
                                     ) : (
                                         <p className="text-[10px] text-muted-foreground text-center py-4 uppercase tracking-[0.2em] font-black opacity-30 italic">No projects</p>
                                     )}
+                                </div>
+                            </div>
+
+                            {/* Team Members Section - Show last on mobile */}
+                            <div className="glass-panel p-6 rounded-3xl space-y-6 order-3 lg:order-1">
+                                <h2 className="text-lg font-bold flex items-center gap-2">
+                                    <User className="h-5 w-5 text-primary" />
+                                    Team Members
+                                </h2>
+
+                                <div className="space-y-3">
+                                    {workspace.members.map((member: any) => (
+                                        <div
+                                            key={member.id}
+                                            className="flex items-center gap-3 p-3 rounded-2xl bg-background/40 border border-white/5 hover:border-primary/30 transition-all group"
+                                        >
+                                            <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-primary/10 to-indigo-500/10 flex items-center justify-center text-primary font-bold border border-primary/20 group-hover:scale-105 transition-transform shadow-inner text-xs">
+                                                {member.name.split(' ').map((n: string) => n[0]).join('')}
+                                            </div>
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-bold text-xs truncate">{member.name}</span>
+                                                <span className="text-[10px] text-muted-foreground truncate uppercase tracking-widest font-black">
+                                                    {member.id === "user-1" ? "Owner" : "Member"}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
