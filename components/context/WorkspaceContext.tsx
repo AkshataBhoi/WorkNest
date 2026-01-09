@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { MOCK_WORKSPACES, Workspace, Member, Expense, Project } from "@/lib/data";
+import { MOCK_WORKSPACES, Workspace, Member, Expense, Project, Task } from "@/lib/data";
 
 interface WorkspaceContextType {
     workspaces: Workspace[];
@@ -11,7 +11,13 @@ interface WorkspaceContextType {
     addExpense: (workspaceId: string, projectId: string, expense: Omit<Expense, "id" | "date">) => void;
     updateExpenseStatus: (workspaceId: string, projectId: string, expenseId: string, status: Expense["status"]) => void;
     updateProjectStatus: (workspaceId: string, projectId: string, status: Project["status"]) => boolean;
+    updateWorkspaceStatus: (workspaceId: string, status: Workspace["status"]) => boolean;
+    assignTask: (workspaceId: string, task: Omit<Task, "id">) => void;
+    updateTaskStatus: (workspaceId: string, taskId: string, status: Task["status"]) => void;
+    createProject: (workspaceId: string, name: string) => void;
+    resetToMocks: () => void;
     currentUser: Member;
+    isInitialized: boolean;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
@@ -32,10 +38,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (saved) {
             try {
                 const parsedWorkspaces = JSON.parse(saved);
-                // Simple migration: Ensure projects array exists for existing workspaces
+                // Simple migration: Ensure projects and tasks arrays exist
                 const migratedWorkspaces = parsedWorkspaces.map((ws: Workspace) => ({
                     ...ws,
-                    projects: ws.projects || []
+                    projects: ws.projects || [],
+                    tasks: ws.tasks || []
                 }));
                 setWorkspaces(migratedWorkspaces);
             } catch (e) {
@@ -73,7 +80,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             progress: 0,
             inviteCode: generateInviteCode(),
             members: [CURRENT_USER],
-            projects: []
+            projects: [],
+            tasks: []
         };
 
         setWorkspaces((prev) => [newWorkspace, ...prev]);
@@ -142,6 +150,50 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return true;
     };
 
+    const updateWorkspaceStatus = (workspaceId: string, status: Workspace["status"]) => {
+        const workspace = workspaces.find(ws => ws.id === workspaceId);
+        if (!workspace || workspace.role !== "Owner") return false;
+
+        setWorkspaces(prev => prev.map(ws => {
+            if (ws.id === workspaceId) {
+                return { ...ws, status };
+            }
+            return ws;
+        }));
+        return true;
+    };
+
+    const assignTask = (workspaceId: string, task: Omit<Task, "id">) => {
+        const workspace = workspaces.find(ws => ws.id === workspaceId);
+        if (!workspace || workspace.role !== "Owner") return;
+
+        setWorkspaces(prev => prev.map(ws => {
+            if (ws.id === workspaceId) {
+                const newTask: Task = {
+                    ...task,
+                    id: `t-${Date.now()}`
+                };
+                return {
+                    ...ws,
+                    tasks: [...(ws.tasks || []), newTask]
+                };
+            }
+            return ws;
+        }));
+    };
+
+    const updateTaskStatus = (workspaceId: string, taskId: string, status: Task["status"]) => {
+        setWorkspaces(prev => prev.map(ws => {
+            if (ws.id === workspaceId) {
+                return {
+                    ...ws,
+                    tasks: ws.tasks.map(t => t.id === taskId ? { ...t, status } : t)
+                };
+            }
+            return ws;
+        }));
+    };
+
     const joinWorkspace = (inviteCode: string, email: string) => {
         if (inviteCode.startsWith("WN-")) {
             const member: Member = {
@@ -181,7 +233,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     lastActive: "Just now",
                     progress: 10,
                     members: [...MOCK_WORKSPACES[0].members, member],
-                    projects: []
+                    projects: [],
+                    tasks: []
                 };
                 setWorkspaces((prev) => [newWS, ...prev]);
                 return true;
@@ -194,6 +247,32 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return workspaces.find(ws => ws.id === id);
     };
 
+    const createProject = (workspaceId: string, name: string) => {
+        setWorkspaces(prev => prev.map(ws => {
+            if (ws.id === workspaceId) {
+                const newProject: Project = {
+                    id: `p-${Date.now()}`,
+                    name,
+                    status: "In Progress",
+                    totalExpense: 0,
+                    expenses: []
+                };
+                return {
+                    ...ws,
+                    projects: [...ws.projects, newProject]
+                };
+            }
+            return ws;
+        }));
+    };
+
+    const resetToMocks = () => {
+        localStorage.removeItem("worknest_workspaces");
+        setWorkspaces(MOCK_WORKSPACES);
+        // We don't need to force a reload, the state update will trigger a re-render
+        // and the next useEffect will save it back to localStorage
+    };
+
     return (
         <WorkspaceContext.Provider value={{
             workspaces,
@@ -203,7 +282,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             addExpense,
             updateExpenseStatus,
             updateProjectStatus,
-            currentUser: CURRENT_USER
+            updateWorkspaceStatus,
+            assignTask,
+            updateTaskStatus,
+            createProject,
+            resetToMocks,
+            currentUser: CURRENT_USER,
+            isInitialized
         }}>
             {children}
         </WorkspaceContext.Provider>

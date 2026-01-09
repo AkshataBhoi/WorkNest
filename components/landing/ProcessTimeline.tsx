@@ -43,105 +43,127 @@ const STEPS = [
     },
 ];
 
+const MotionH2 = motion.h2 as any;
+const MotionP = motion.p as any;
+const MotionDiv = motion.div as any;
+
 export function ProcessTimeline() {
     return (
-        <section className="relative py-24 sm:py-32 overflow-hidden">
-            <div className="container mx-auto px-4">
-                <div className="mb-20 text-center">
-                    <motion.h2
+        <section className="relative py-10 sm:py-15 lg:py-20 overflow-hidden">
+            <div className="container mx-auto px-6 sm:px-12">
+                <div className="mb-24 text-center">
+                    <MotionDiv
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-3xl font-bold tracking-tight sm:text-4xl mb-4"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md px-4 py-1.5 text-sm font-medium text-cyan-400 mb-6"
+                    >
+                        Seamless Experience
+                    </MotionDiv>
+                    <MotionH2
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="text-4xl font-extrabold tracking-tight sm:text-6xl mb-6 bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent"
                     >
                         Streamlined Workflow
-                    </motion.h2>
-                    <motion.p
+                    </MotionH2>
+                    <MotionP
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.1 }}
-                        className="text-lg text-muted-foreground max-w-2xl mx-auto"
+                        className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed"
                     >
-                        From setup to settlement, WorkNest handles the details so you can focus on building.
-                    </motion.p>
+                        From setup to settlement, WorkNest handles the heavy lifting so you can focus on building what matters.
+                    </MotionP>
                 </div>
 
-                {/* Desktop Horizontal Straight Line */}
-                <div className="relative hidden md:block mt-12">
-                    {/* Straight Connecting Line */}
-                    <div className="absolute top-[40px] left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-border to-transparent -z-10" />
+                <div className="relative rounded-[2.5rem] border border-white/10 bg-white/5 backdrop-blur-2xl p-8 sm:p-12 md:p-16 shadow-2xl overflow-hidden group">
+                    {/* Animated Gradient Border */}
+                    <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-transparent to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
-                    <div className="absolute top-[40px] left-[10%] max-w-[80%] w-full h-0.5 bg-gradient-to-r from-primary/20 via-accent/50 to-purple-500/20 -z-10" />
+                    {/* Desktop Horizontal Straight Line */}
+                    <div className="relative hidden lg:block">
+                        {/* <div className="absolute top-[48px] left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-white/20 to-transparent -z-10" />
+                        <MotionDiv
+                            initial={{ width: 0 }}
+                            whileInView={{ width: "80%" }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 1.5, ease: "easeInOut", delay: 0.5 }}
+                            className="absolute top-[48px] left-[10%] h-px bg-gradient-to-r from-primary via-cyan-400 to-primary -z-10 shadow-[0_0_15px_rgba(139,92,246,0.5)]"
+                        /> */}
 
-                    <div className="grid grid-cols-4 gap-8">
+                        <div className="grid grid-cols-4 gap-12">
+                            {STEPS.map((step, index) => {
+                                const Icon = step.icon;
+                                return (
+                                    <MotionDiv
+                                        key={index}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        whileInView={{ opacity: 1, scale: 1 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: index * 0.2 }}
+                                        className="flex flex-col items-center text-center group/item"
+                                    >
+                                        <div className={cn(
+                                            "relative flex h-24 w-24 items-center justify-center rounded-[2rem] border bg-slate-950/50 backdrop-blur-xl shadow-2xl transition-all duration-500 group-hover/item:scale-110 group-hover/item:-translate-y-2 z-10 mb-8 border-white/10 group-hover/item:border-primary/50",
+                                            step.color
+                                        )}>
+                                            <div className={cn("absolute inset-0 opacity-0 group-hover/item:opacity-20 rounded-[2rem] transition-opacity duration-500", step.bgColor)} />
+                                            <Icon className="h-10 w-10 transition-transform duration-500 group-hover/item:rotate-6" />
+
+                                            {/* Step Number Badge */}
+                                            <div className="absolute -top-3 -right-3 h-8 w-8 rounded-full border border-white/10 bg-slate-900 flex items-center justify-center text-xs font-bold text-white shadow-lg">
+                                                {index + 1}
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <h3 className="text-xl font-bold text-white group-hover/item:text-primary transition-colors">{step.title}</h3>
+                                            <p className="text-slate-400 text-sm leading-relaxed px-4">
+                                                {step.description}
+                                            </p>
+                                        </div>
+                                    </MotionDiv>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Mobile Vertical Fallback */}
+                    <div className="lg:hidden space-y-16 relative">
+                        <div className="absolute left-8 top-8 bottom-8 w-px bg-gradient-to-b from-primary via-cyan-400 to-primary opacity-20" />
+
                         {STEPS.map((step, index) => {
                             const Icon = step.icon;
-
                             return (
-                                <motion.div
+                                <MotionDiv
                                     key={index}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
                                     viewport={{ once: true }}
-                                    transition={{ delay: index * 0.15 }}
-                                    className="flex flex-col items-center text-center group"
+                                    className="relative pl-24 group/item"
                                 >
-                                    {/* Icon Node */}
                                     <div className={cn(
-                                        "relative flex h-20 w-20 items-center justify-center rounded-full border bg-background shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:shadow-primary/25 z-10 mb-6",
-                                        step.borderColor,
+                                        "absolute left-0 top-0 flex h-16 w-16 items-center justify-center rounded-2xl border bg-slate-950/50 backdrop-blur-xl shadow-xl z-10 border-white/10 group-hover/item:border-primary/50 transition-all",
                                         step.color
                                     )}>
-                                        <div className={cn("absolute inset-0 opacity-20 rounded-full", step.bgColor)} />
-                                        <Icon className="h-9 w-9" />
+                                        <div className={cn("absolute inset-0 opacity-10 rounded-2xl", step.bgColor)} />
+                                        <Icon className="h-8 w-8" />
                                     </div>
 
-                                    {/* Text Content */}
-                                    <div className="relative px-2">
-                                        <h3 className="text-xl font-bold mb-3">{step.no} {step.title}</h3>
-                                        <p className="text-muted-foreground text-sm">
+                                    <div className="pt-2">
+                                        <h3 className="text-2xl font-bold mb-2 text-white">{step.title}</h3>
+                                        <p className="text-slate-400 leading-relaxed">
                                             {step.description}
                                         </p>
                                     </div>
-                                </motion.div>
+                                </MotionDiv>
                             );
                         })}
                     </div>
                 </div>
-
-                {/* Mobile Vertical Fallback */}
-                <div className="md:hidden space-y-12 relative mt-8">
-                    <div className="absolute left-6 top-6 bottom-6 w-0.5 bg-gradient-to-b from-primary/20 via-accent/50 to-purple-500/20" />
-
-                    {STEPS.map((step, index) => {
-                        const Icon = step.icon;
-                        return (
-                            <motion.div
-                                key={index}
-                                initial={{ opacity: 0, x: -20 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                viewport={{ once: true }}
-                                className="relative pl-16 pr-4"
-                            >
-                                <div className={cn(
-                                    "absolute left-0 top-0 flex h-12 w-12 items-center justify-center rounded-full border bg-card shadow-sm z-10",
-                                    step.borderColor,
-                                    step.color
-                                )}>
-                                    <div className={cn("absolute inset-0 opacity-10 rounded-full", step.bgColor)} />
-                                    <Icon className="h-6 w-6" />
-                                </div>
-
-                                <h3 className="text-lg font-bold mb-1">{step.title}</h3>
-                                <p className="text-muted-foreground text-sm">
-                                    {step.description}
-                                </p>
-                            </motion.div>
-                        );
-                    })}
-                </div>
-
             </div>
         </section>
     );

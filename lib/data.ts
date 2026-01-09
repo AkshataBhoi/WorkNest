@@ -10,8 +10,17 @@ export interface Expense {
     title: string;
     amount: number;
     paidById: string; // ID of the member who paid
+    splitBetween: string[]; // IDs of members the expense is split between
     status: "Paid" | "Pending" | "Cleared";
     date: string;
+}
+
+export interface Task {
+    id: string;
+    title: string;
+    description: string;
+    status: "Pending" | "In Progress" | "Completed";
+    memberId: string;
 }
 
 export interface Project {
@@ -27,13 +36,14 @@ export interface Workspace {
     name: string;
     description: string;
     role: "Owner" | "Member";
-    status: "In Progress" | "Completed";
+    status: "In Progress" | "Completed" | "On Hold" | "Pending";
     membersCount: number;
     lastActive: string;
     progress: number;
     members: Member[];
     inviteCode?: string;
     projects: Project[];
+    tasks: Task[];
 }
 
 export const MOCK_WORKSPACES: Workspace[] = [
@@ -59,8 +69,8 @@ export const MOCK_WORKSPACES: Workspace[] = [
                 status: "In Progress",
                 totalExpense: 1250,
                 expenses: [
-                    { id: "e1", title: "Hosting (Vercel)", amount: 500, paidById: "m1", status: "Paid", date: "2024-01-05" },
-                    { id: "e2", title: "UI Kit License", amount: 750, paidById: "m2", status: "Paid", date: "2024-01-06" }
+                    { id: "e1", title: "Hosting (Vercel)", amount: 500, paidById: "m1", splitBetween: ["m1", "m2", "m3", "m4"], status: "Paid", date: "2024-01-05" },
+                    { id: "e2", title: "UI Kit License", amount: 750, paidById: "m2", splitBetween: ["m1", "m2", "m3", "m4"], status: "Paid", date: "2024-01-06" }
                 ]
             },
             {
@@ -70,6 +80,10 @@ export const MOCK_WORKSPACES: Workspace[] = [
                 totalExpense: 0,
                 expenses: []
             }
+        ],
+        tasks: [
+            { id: "t1", title: "Setup Project Structure", description: "Initialize Next.js project and install dependencies", status: "Completed", memberId: "m1" },
+            { id: "t2", title: "Design Landing Page", description: "Create wireframes and implement components for the hero section", status: "In Progress", memberId: "m2" }
         ]
     },
     {
@@ -98,11 +112,12 @@ export const MOCK_WORKSPACES: Workspace[] = [
                 status: "Completed",
                 totalExpense: 5000,
                 expenses: [
-                    { id: "e3", title: "Facebook Ads", amount: 3000, paidById: "m12", status: "Cleared", date: "2024-01-02" },
-                    { id: "e4", title: "Design Assets", amount: 2000, paidById: "m9", status: "Paid", date: "2024-01-03" }
+                    { id: "e3", title: "Facebook Ads", amount: 3000, paidById: "m12", splitBetween: ["m5", "m6", "m7", "m8", "m9", "m10", "m11", "m12"], status: "Cleared", date: "2024-01-02" },
+                    { id: "e4", title: "Design Assets", amount: 2000, paidById: "m9", splitBetween: ["m5", "m6", "m7", "m8", "m9", "m10", "m11", "m12"], status: "Paid", date: "2024-01-03" }
                 ]
             }
-        ]
+        ],
+        tasks: []
     },
     {
         id: "ws-3",
@@ -118,6 +133,7 @@ export const MOCK_WORKSPACES: Workspace[] = [
             { id: "m14", name: "Ada Lovelace", email: "ada@computing.org" },
             { id: "m15", name: "Grace Hopper", email: "grace@cobol.dev" },
         ],
-        projects: []
+        projects: [],
+        tasks: []
     }
 ];

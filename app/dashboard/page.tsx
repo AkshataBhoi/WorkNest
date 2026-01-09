@@ -157,55 +157,30 @@ export default function DashboardPage() {
                                                             </p>
                                                         </td>
                                                         <td className="px-6 py-5">
-                                                            <div className="flex flex-col gap-2 min-w-[120px]">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className={cn(
-                                                                        "h-1.5 w-1.5 rounded-full inline-block animate-pulse",
-                                                                        ws.status === "In Progress" ? "bg-amber-400" : "bg-emerald-400"
-                                                                    )} />
-                                                                    <span className={cn(
-                                                                        "font-medium text-sm",
-                                                                        ws.status === "In Progress" ? "text-amber-400" : "text-emerald-400"
-                                                                    )}>
-                                                                        {ws.status}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="h-1 w-24 bg-white/5 rounded-full overflow-hidden">
-                                                                    <MotionDiv
-                                                                        initial={{ width: 0 }}
-                                                                        animate={{ width: `${ws.progress}%` }}
-                                                                        transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
-                                                                        className={cn(
-                                                                            "h-full rounded-full transition-all",
-                                                                            ws.status === "In Progress" ? "bg-amber-400" : "bg-emerald-400"
-                                                                        )}
-                                                                    />
-                                                                </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={cn(
+                                                                    "h-2 w-2 rounded-full inline-block",
+                                                                    ws.status === "In Progress" ? "bg-amber-400" :
+                                                                        ws.status === "Completed" ? "bg-emerald-400" :
+                                                                            ws.status === "On Hold" ? "bg-rose-400" : "bg-slate-400"
+                                                                )} />
+                                                                <span className={cn(
+                                                                    "font-medium text-sm",
+                                                                    ws.status === "In Progress" ? "text-amber-400" :
+                                                                        ws.status === "Completed" ? "text-emerald-400" :
+                                                                            ws.status === "On Hold" ? "text-rose-400" : "text-slate-400"
+                                                                )}>
+                                                                    {ws.status}
+                                                                </span>
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-5">
-                                                            <div className="flex flex-col gap-2 min-w-[180px]">
-                                                                {ws.projects && ws.projects.length > 0 ? (
-                                                                    ws.projects.map((project: any) => (
-                                                                        <div key={project.id} className="flex items-center justify-between gap-3 p-2 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                                                                            <div className="flex flex-col truncate">
-                                                                                <span className="text-[10px] text-muted-foreground uppercase tracking-wider truncate font-bold">{project.name}</span>
-                                                                                <span className="font-bold text-sm">₹{project.totalExpense.toLocaleString()}</span>
-                                                                            </div>
-                                                                            <Link href={`/workspace/${ws.id}/projects/${project.id}/expenses`}>
-                                                                                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-primary hover:text-white transition-all">
-                                                                                    <ArrowRight className="h-3.5 w-3.5" />
-                                                                                </Button>
-                                                                            </Link>
-                                                                        </div>
-                                                                    ))
-                                                                ) : (
-                                                                    <div className="flex flex-col gap-1 opacity-50">
-                                                                        <span className="font-bold text-base">₹0</span>
-                                                                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">No Projects</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                                                            <Link
+                                                                href={`/workspace/${ws.id}/expenses`}
+                                                                className="inline-flex items-center justify-center h-9 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-medium transition-all"
+                                                            >
+                                                                View
+                                                            </Link>
                                                         </td>
                                                         <td className="px-6 py-5 lg:table-cell hidden">
                                                             <div className="flex -space-x-2.5 overflow-hidden">
@@ -237,15 +212,12 @@ export default function DashboardPage() {
                                                                     </span>
                                                                     <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">Last Edit</span>
                                                                 </div>
-                                                                <Link href={`/workspace/${ws.id}`}>
-                                                                    <Button
-                                                                        variant="secondary"
-                                                                        size="sm"
-                                                                        className="h-10 px-4 rounded-xl border border-white/5 bg-white/5 hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-                                                                    >
-                                                                        Open Workspace
-                                                                        <ArrowRight className="ml-2 h-3.5 w-3.5" />
-                                                                    </Button>
+                                                                <Link
+                                                                    href={`/workspace/${ws.id}`}
+                                                                    className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-white/5 bg-white/5 hover:bg-primary hover:text-primary-foreground transition-all duration-300 text-sm font-medium"
+                                                                >
+                                                                    Open Workspace
+                                                                    <ArrowRight className="ml-2 h-3.5 w-3.5" />
                                                                 </Link>
                                                             </div>
                                                         </td>

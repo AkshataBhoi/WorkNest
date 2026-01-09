@@ -15,7 +15,9 @@ import {
     Clock,
     CheckCircle2,
     Trash2,
-    Filter
+    Filter,
+    X,
+    Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -27,7 +29,7 @@ const MotionDiv = motion.div as any;
 export default function ProjectExpensesPage() {
     const params = useParams();
     const router = useRouter();
-    const { getWorkspaceById, addExpense, updateExpenseStatus } = useWorkspaces();
+    const { getWorkspaceById, addExpense, updateExpenseStatus, updateProjectStatus, currentUser } = useWorkspaces();
 
     const workspaceId = params.id as string;
     const projectId = params.projectId as string;
@@ -39,8 +41,14 @@ export default function ProjectExpensesPage() {
     const [newExpense, setNewExpense] = useState({
         title: "",
         amount: "",
-        paidById: ""
+        paidById: currentUser.id,
+        status: "Paid" as "Paid" | "Pending" | "Cleared"
     });
+    const [splitBetweenIds, setSplitBetweenIds] = useState<string[]>(workspace?.members.map(m => m.id) || []);
+
+    const splitAmount = parseFloat(newExpense.amount) && splitBetweenIds.length > 0
+        ? (parseFloat(newExpense.amount) / splitBetweenIds.length).toFixed(2)
+        : "0.00";
 
     if (!workspace || !project) {
         return (
@@ -53,72 +61,141 @@ export default function ProjectExpensesPage() {
 
     const handleAddExpense = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newExpense.title || !newExpense.amount || !newExpense.paidById) return;
+        if (!newExpense.title || !newExpense.amount || !newExpense.paidById || splitBetweenIds.length === 0) return;
 
         addExpense(workspaceId, projectId, {
             title: newExpense.title,
             amount: parseFloat(newExpense.amount),
             paidById: newExpense.paidById,
-            status: "Paid"
+            splitBetween: splitBetweenIds,
+            status: newExpense.status
         });
 
-        setNewExpense({ title: "", amount: "", paidById: "" });
+        setNewExpense({ title: "", amount: "", paidById: currentUser.id, status: "Paid" });
+        setSplitBetweenIds(workspace?.members.map(m => m.id) || []);
         setIsAddModalOpen(false);
     };
 
+    const toggleMember = (id: string) => {
+        setSplitBetweenIds(prev =>
+            prev.includes(id) ? prev.filter(mId => mId !== id) : [...prev, id]
+        );
+    };
+
+    const toggleAll = () => {
+        if (splitBetweenIds.length === workspace?.members.length) {
+            setSplitBetweenIds([]);
+        } else {
+            setSplitBetweenIds(workspace?.members.map(m => m.id) || []);
+        }
+    };
+
+    // Calculate computed total expense (excluding cleared)
+    const activeExpenses = project.expenses.filter(e => e.status !== "Cleared");
+    const computedTotalExpense = activeExpenses.reduce((acc, e) => acc + e.amount, 0);
+
     // Calculate contribution breakdown
     const contributions = workspace.members.map(member => {
-        const total = project.expenses
+        // Amount this member paid (excluding cleared)
+        const paid = activeExpenses
             .filter(e => e.paidById === member.id)
             .reduce((acc, e) => acc + e.amount, 0);
-        const percentage = project.totalExpense > 0 ? (total / project.totalExpense) * 100 : 0;
-        return { ...member, total, percentage };
-    }).sort((a, b) => b.total - a.total);
+
+        // Amount this member is responsible for (excluding cleared)
+        const share = activeExpenses.reduce((acc, e) => {
+            if (e.splitBetween && e.splitBetween.includes(member.id)) {
+                return acc + (e.amount / e.splitBetween.length);
+            }
+            return acc;
+        }, 0);
+
+        const balance = paid - share;
+        const percentage = computedTotalExpense > 0 ? (paid / computedTotalExpense) * 100 : 0;
+
+        return { ...member, paid, share, balance, percentage };
+    }).sort((a, b) => b.paid - a.paid);
+
+    // Calculate Suggested Settlements (Greedy Algorithm)
+    const getSettlements = () => {
+        const debtors = contributions
+            .filter(c => c.balance < -0.01)
+            .map(c => ({ ...c, amount: Math.abs(c.balance) }))
+            .sort((a, b) => b.amount - a.amount);
+
+        const creditors = contributions
+            .filter(c => c.balance > 0.01)
+            .map(c => ({ ...c, amount: c.balance }))
+            .sort((a, b) => b.amount - a.amount);
+
+        const settlements: { from: string, to: string, amount: number }[] = [];
+
+        let i = 0; // debtor index
+        let j = 0; // creditor index
+
+        while (i < debtors.length && j < creditors.length) {
+            const amount = Math.min(debtors[i].amount, creditors[j].amount);
+            settlements.push({
+                from: debtors[i].name,
+                to: creditors[j].name,
+                amount: amount
+            });
+
+            debtors[i].amount -= amount;
+            creditors[j].amount -= amount;
+
+            if (debtors[i].amount < 0.01) i++;
+            if (creditors[j].amount < 0.01) j++;
+        }
+
+        return settlements;
+    };
+
+    const suggestedSettlements = getSettlements();
 
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col">
             <Navbar />
 
-            <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
+            <main className="flex-1 container mx-auto px-4 py-4 max-w-6xl">
                 <PageTransition>
-                    <div className="mb-8">
-                        <Link href={`/workspace/${workspace.id}`} className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors mb-6 group">
-                            <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                    <div className="mb-6">
+                        <Link href={`/workspace/${workspace.id}`} className="inline-flex items-center text-xs text-muted-foreground hover:text-primary transition-colors mb-4 group">
+                            <ArrowLeft className="mr-2 h-3 w-3 transition-transform group-hover:-translate-x-1" />
                             Back to Workspace
                         </Link>
 
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                            <div className="space-y-4">
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                            <div className="space-y-3">
                                 <div className="flex items-center gap-3">
-                                    <h1 className="text-4xl font-extrabold tracking-tight">{project.name} Expenses</h1>
-                                    <div className="px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-xs font-bold uppercase tracking-wider">
+                                    <h1 className="text-2xl font-black tracking-tight">{project.name}</h1>
+                                    <div className="px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-[10px] font-black uppercase tracking-wider">
                                         {workspace.name}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-4">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">Total Project Cost</span>
-                                        <span className="text-3xl font-black text-foreground">₹{project.totalExpense.toLocaleString()}</span>
+                                        <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-black">Total Cost</span>
+                                        <span className="text-xl font-black text-foreground">₹{project.totalExpense.toLocaleString()}</span>
                                     </div>
-                                    <div className="h-10 w-px bg-white/10" />
+                                    <div className="h-8 w-px bg-white/10" />
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">Total Expenses</span>
-                                        <span className="text-3xl font-black text-primary">{project.expenses.length}</span>
+                                        <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-black">Expenses</span>
+                                        <span className="text-xl font-black text-primary">{project.expenses.length}</span>
                                     </div>
                                 </div>
                             </div>
 
                             <Button
                                 onClick={() => setIsAddModalOpen(true)}
-                                className="rounded-2xl h-14 px-8 text-base font-bold shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all gap-2"
+                                className="rounded-xl h-11 px-6 text-sm font-bold shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all gap-2"
                             >
-                                <Plus className="h-5 w-5" />
+                                <Plus className="h-4 w-4" />
                                 Add Expense
                             </Button>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                         {/* Expense List */}
                         <div className="lg:col-span-2 space-y-6">
                             <div className="glass-panel p-6 rounded-3xl">
@@ -137,56 +214,60 @@ export default function ProjectExpensesPage() {
 
                                 <div className="space-y-3">
                                     {project.expenses.length > 0 ? (
-                                        project.expenses.map((expense) => {
-                                            const paidBy = workspace.members.find(m => m.id === expense.paidById);
-                                            return (
-                                                <div
-                                                    key={expense.id}
-                                                    className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-background/40 border border-white/5 hover:border-primary/20 transition-all hover:bg-background/60"
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="h-12 w-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
-                                                            <IndianRupee className="h-5 w-5" />
+                                        <div className="space-y-2">
+                                            {[...project.expenses].reverse().map((expense) => {
+                                                const paidBy = workspace.members.find(m => m.id === expense.paidById);
+                                                return (
+                                                    <div key={expense.id} className="group flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                                                <IndianRupee className="h-4 w-4" />
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-bold text-sm leading-tight">{expense.title}</h4>
+                                                                <div className="flex items-center gap-2 mt-0.5">
+                                                                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                                                                        {paidBy?.name.split(" ")[0]} paid ₹{expense.amount.toLocaleString()}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-muted-foreground">•</span>
+                                                                    <div className="flex -space-x-1">
+                                                                        {expense.splitBetween?.map((id) => {
+                                                                            const mem = workspace.members.find(m => m.id === id);
+                                                                            return (
+                                                                                <div key={id} title={mem?.name} className="h-4 w-4 rounded-full bg-white/10 border border-background flex items-center justify-center text-[8px] font-bold">
+                                                                                    {mem?.name[0]}
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <h4 className="font-bold text-sm lg:text-base">{expense.title}</h4>
-                                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                                                                <span className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
-                                                                    <Users className="h-3 w-3" />
-                                                                    {paidBy?.name}
-                                                                </span>
-                                                                <span className="text-[10px] sm:text-xs text-muted-foreground font-mono">
-                                                                    {expense.date}
-                                                                </span>
+                                                        <div className="text-right flex items-center gap-4">
+                                                            <div className="hidden md:block">
+                                                                <select
+                                                                    value={expense.status}
+                                                                    onChange={(e) => updateExpenseStatus(workspaceId, projectId, expense.id, e.target.value as any)}
+                                                                    className={cn(
+                                                                        "text-[10px] font-bold uppercase tracking-wider bg-transparent border-none focus:ring-0 cursor-pointer outline-none",
+                                                                        expense.status === "Paid" ? "text-emerald-500" :
+                                                                            expense.status === "Pending" ? "text-amber-500" : "text-indigo-500"
+                                                                    )}
+                                                                >
+                                                                    <option value="Paid" className="bg-background">Paid</option>
+                                                                    <option value="Pending" className="bg-background">Pending</option>
+                                                                    <option value="Cleared" className="bg-background">Cleared</option>
+                                                                </select>
+                                                            </div>
+                                                            <div className="flex flex-col items-end">
+                                                                <span className="font-black text-sm">₹{expense.amount.toLocaleString()}</span>
+                                                                <span className="text-[9px] text-muted-foreground">{expense.date}</span>
                                                             </div>
                                                         </div>
                                                     </div>
-
-                                                    <div className="flex items-center justify-between sm:justify-end gap-6 mt-4 sm:mt-0">
-                                                        <div className="text-right">
-                                                            <span className="block font-black text-lg">₹{expense.amount.toLocaleString()}</span>
-                                                            <select
-                                                                value={expense.status}
-                                                                onChange={(e) => updateExpenseStatus(workspaceId, projectId, expense.id, e.target.value as any)}
-                                                                className={cn(
-                                                                    "text-[10px] font-bold uppercase tracking-wider bg-transparent border-none p-0 focus:ring-0 cursor-pointer transition-colors",
-                                                                    expense.status === "Paid" ? "text-emerald-400" :
-                                                                        expense.status === "Pending" ? "text-amber-400" : "text-indigo-400"
-                                                                )}
-                                                            >
-                                                                <option value="Paid" className="bg-background text-foreground">Paid</option>
-                                                                <option value="Pending" className="bg-background text-foreground">Pending</option>
-                                                                <option value="Cleared" className="bg-background text-foreground">Cleared</option>
-                                                            </select>
-                                                        </div>
-                                                        {/* Optional Delete for demo clarity if needed */}
-                                                        {/* <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive hover:bg-destructive/10">
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button> */}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })
+                                                );
+                                            })}
+                                        </div>
                                     ) : (
                                         <div className="py-20 text-center">
                                             <div className="inline-flex items-center justify-center h-16 w-16 rounded-3xl bg-white/5 border border-white/10 mb-4">
@@ -197,38 +278,110 @@ export default function ProjectExpensesPage() {
                                     )}
                                 </div>
                             </div>
-                        </div>
+                            <div className="glass-panel p-6 rounded-3xl space-y-6">
+                                {/* Summary Header Row */}
+                                <div className="flex items-center justify-between pb-4 border-b border-white/5">
+                                    <div className="flex items-center gap-6">
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-black">Members</span>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <Users className="h-3 w-3 text-primary" />
+                                                <span className="text-sm font-black">{workspace.members.length}</span>
+                                            </div>
+                                        </div>
+                                        <div className="h-8 w-px bg-white/5" />
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-black">Total Expense</span>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <IndianRupee className="h-3 w-3 text-emerald-500" />
+                                                <span className="text-sm font-black text-foreground">₹{computedTotalExpense.toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                        {/* Contribution Breakdown */}
-                        <div className="space-y-8">
-                            <div className="glass-panel p-6 rounded-3xl">
-                                <h2 className="text-xl font-bold flex items-center gap-2 mb-6">
-                                    <PieChart className="h-5 w-5 text-primary" />
-                                    Team Contribution
-                                </h2>
+                                    <div className={cn(
+                                        "flex items-center gap-2 px-3 py-1.5 rounded-xl border",
+                                        suggestedSettlements.length === 0
+                                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                                            : "bg-amber-500/10 border-amber-500/20 text-amber-500"
+                                    )}>
+                                        <CheckCircle2 className="h-3.5 w-3.5" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider">
+                                            {suggestedSettlements.length === 0 ? "All Settled" : "Settlements Pending"}
+                                        </span>
+                                    </div>
+                                </div>
 
-                                <div className="space-y-5">
+                                {/* Horizontal Member Strip */}
+                                <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
                                     {contributions.map((c) => (
-                                        <div key={c.id} className="space-y-2">
-                                            <div className="flex items-center justify-between text-sm font-bold">
-                                                <span className="text-muted-foreground truncate max-w-[120px]">{c.name}</span>
-                                                <span className="text-foreground">₹{c.total.toLocaleString()}</span>
+                                        <div key={c.id} className="flex-shrink-0 w-[140px] p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="h-7 w-7 rounded-full bg-indigo-500/10 flex items-center justify-center text-[10px] font-black text-indigo-400 border border-indigo-500/20">
+                                                    {c.name[0]}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h4 className="text-[11px] font-bold truncate">{c.name.split(" ")[0]}</h4>
+                                                </div>
                                             </div>
-                                            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden flex">
-                                                <MotionDiv
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${c.percentage}%` }}
-                                                    transition={{ duration: 1, ease: "easeOut" }}
-                                                    className="h-full bg-gradient-to-r from-primary to-indigo-500"
-                                                />
-                                            </div>
-                                            <div className="text-[10px] text-right text-muted-foreground uppercase tracking-widest font-bold">
-                                                {c.percentage.toFixed(1)}% Contribution
+
+                                            <div className={cn(
+                                                "px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider text-center",
+                                                c.balance > 0.01 ? "bg-emerald-500/10 text-emerald-500" :
+                                                    c.balance < -0.01 ? "bg-rose-500/10 text-rose-500" : "bg-white/5 text-muted-foreground/60"
+                                            )}>
+                                                {c.balance > 0.01
+                                                    ? `Receive ₹${c.balance.toFixed(0)}`
+                                                    : c.balance < -0.01
+                                                        ? `Pay ₹${Math.abs(c.balance).toFixed(0)}`
+                                                        : "Settled"}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Contribution Breakdown */}
+                        <div className="space-y-6">
+                            {/* Horizontal Team Summary */}
+
+
+                            {/* Conditional Suggested Settlements */}
+                            {suggestedSettlements.length > 0 && (
+                                <MotionDiv
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="glass-panel p-6 rounded-3xl bg-indigo-500/5 border-indigo-500/20"
+                                >
+                                    <h2 className="text-xl font-bold flex items-center gap-2 mb-6">
+                                        <CheckCircle2 className="h-5 w-5 text-indigo-400" />
+                                        Suggested Settlements
+                                    </h2>
+
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {suggestedSettlements.map((s, idx) => (
+                                            <div key={idx} className="p-4 rounded-2xl bg-background/40 border border-white/5 flex items-center justify-between relative group overflow-hidden">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-black mb-1">{s.from}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-bold text-foreground opacity-80">Pays</span>
+                                                            <span className="text-sm font-black text-rose-500">₹{s.amount.toFixed(0)}</span>
+                                                        </div>
+                                                    </div>
+                                                    <ArrowLeft className="h-3 w-3 text-muted-foreground rotate-180 opacity-30" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-black mb-1">To {s.to}</span>
+                                                        <span className="text-xs font-bold text-emerald-500">Action Required</span>
+                                                    </div>
+                                                </div>
+                                                <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-rose-500/20 to-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </MotionDiv>
+                            )}
 
                             <div className="glass-panel p-6 rounded-3xl bg-primary/5 border-primary/20">
                                 <div className="flex items-start gap-4">
@@ -250,7 +403,6 @@ export default function ProjectExpensesPage() {
 
             <Footer />
 
-            {/* Add Expense Modal */}
             <AnimatePresence>
                 {isAddModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
@@ -258,68 +410,173 @@ export default function ProjectExpensesPage() {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-card w-full max-w-lg rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden glass-panel"
+                            className="bg-card w-full max-w-lg rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden glass-panel relative"
                         >
-                            <div className="p-8 md:p-10">
-                                <h2 className="text-2xl font-black mb-2">Add New Expense</h2>
-                                <p className="text-muted-foreground text-sm mb-8">Record a new team expenditure for {project.name}.</p>
+                            <button
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/5 text-muted-foreground transition-colors"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
 
-                                <form onSubmit={handleAddExpense} className="space-y-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] uppercase tracking-widest font-black text-muted-foreground ml-1">Expense Title</label>
+                            <div className="p-6 md:p-8">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h2 className="text-xl font-black tracking-tight">Add Expense</h2>
+                                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">New project transaction</p>
+                                    </div>
+                                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                        <IndianRupee className="h-5 w-5" />
+                                    </div>
+                                </div>
+
+                                <form onSubmit={handleAddExpense} className="space-y-4">
+                                    {/* Description */}
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between items-end px-1">
+                                            <label className="text-[9px] uppercase tracking-widest font-black text-muted-foreground">Description</label>
+                                            <span className="text-[9px] text-muted-foreground opacity-50">{newExpense.title.length}/50</span>
+                                        </div>
                                         <input
                                             type="text"
                                             required
+                                            maxLength={50}
                                             value={newExpense.title}
                                             onChange={(e) => setNewExpense({ ...newExpense, title: e.target.value })}
-                                            placeholder="e.g. Server Hosting"
-                                            className="w-full h-14 px-6 rounded-2xl bg-background/50 border border-white/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all outline-none text-base"
+                                            placeholder="e.g. Team lunch, Domain purchase"
+                                            className="w-full h-11 px-4 rounded-xl bg-background/50 border border-white/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all outline-none text-sm"
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] uppercase tracking-widest font-black text-muted-foreground ml-1">Amount (₹)</label>
+                                    {/* Amount */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] uppercase tracking-widest font-black text-muted-foreground px-1">Amount</label>
+                                        <div className="relative group">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">₹</span>
                                             <input
                                                 type="number"
                                                 required
+                                                step="any"
                                                 value={newExpense.amount}
                                                 onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-                                                placeholder="0.00"
-                                                className="w-full h-14 px-6 rounded-2xl bg-background/50 border border-white/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all outline-none text-base"
+                                                placeholder="0"
+                                                className="w-full h-11 pl-8 pr-4 rounded-xl bg-background/50 border border-white/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all outline-none text-sm text-right font-bold"
                                             />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] uppercase tracking-widest font-black text-muted-foreground ml-1">Paid By</label>
+                                        {parseFloat(newExpense.amount) <= 0 && newExpense.amount !== "" && (
+                                            <p className="text-[9px] text-rose-500 font-bold px-1">Amount must be greater than zero</p>
+                                        )}
+                                    </div>
+
+                                    {/* Paid By & Status */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] uppercase tracking-widest font-black text-muted-foreground px-1">Paid By</label>
+                                            <div className="relative">
+                                                <select
+                                                    required
+                                                    value={newExpense.paidById}
+                                                    onChange={(e) => setNewExpense({ ...newExpense, paidById: e.target.value })}
+                                                    className="w-full h-11 px-4 rounded-xl bg-background/50 border border-white/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all outline-none text-xs appearance-none cursor-pointer pr-10"
+                                                >
+                                                    {workspace.members.map(m => (
+                                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                                    ))}
+                                                </select>
+                                                <Users className="absolute right-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none opacity-50" />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] uppercase tracking-widest font-black text-muted-foreground px-1">Status</label>
                                             <select
                                                 required
-                                                value={newExpense.paidById}
-                                                onChange={(e) => setNewExpense({ ...newExpense, paidById: e.target.value })}
-                                                className="w-full h-14 px-6 rounded-2xl bg-background/50 border border-white/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all outline-none text-base"
+                                                value={newExpense.status}
+                                                onChange={(e) => setNewExpense({ ...newExpense, status: e.target.value as any })}
+                                                className="w-full h-11 px-4 rounded-xl bg-background/50 border border-white/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all outline-none text-xs appearance-none cursor-pointer"
                                             >
-                                                <option value="" disabled className="bg-background">Select Member</option>
-                                                {workspace.members.map(m => (
-                                                    <option key={m.id} value={m.id} className="bg-background text-foreground">{m.name}</option>
-                                                ))}
+                                                <option value="Paid">Paid</option>
+                                                <option value="Pending">Pending</option>
+                                                <option value="Cleared">Cleared</option>
                                             </select>
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-4 pt-4">
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            onClick={() => setIsAddModalOpen(false)}
-                                            className="flex-1 h-14 rounded-2xl font-bold"
+                                    {/* Split Between */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between px-1">
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-[9px] uppercase tracking-widest font-black text-muted-foreground">Split Between</label>
+                                                <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[8px] font-bold">{splitBetweenIds.length} Members</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={toggleAll}
+                                                className="text-[9px] font-black text-primary hover:underline uppercase tracking-wider"
+                                            >
+                                                {splitBetweenIds.length === workspace.members.length ? "Deselect All" : "Select All"}
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-1.5 max-h-[140px] overflow-y-auto pr-1 custom-scrollbar">
+                                            {workspace.members.map(member => (
+                                                <div
+                                                    key={member.id}
+                                                    onClick={() => toggleMember(member.id)}
+                                                    className={cn(
+                                                        "flex items-center gap-2.5 p-2 rounded-lg border transition-all cursor-pointer",
+                                                        splitBetweenIds.includes(member.id)
+                                                            ? "bg-primary/5 border-primary/20"
+                                                            : "bg-white/5 border-white/5 opacity-60 hover:opacity-100"
+                                                    )}
+                                                >
+                                                    <div className={cn(
+                                                        "h-3.5 w-3.5 rounded-sm border flex items-center justify-center transition-all",
+                                                        splitBetweenIds.includes(member.id)
+                                                            ? "bg-primary border-primary text-white"
+                                                            : "border-white/20"
+                                                    )}>
+                                                        {splitBetweenIds.includes(member.id) && <Check className="h-2.5 w-2.5" />}
+                                                    </div>
+                                                    <div className="h-5 w-5 rounded-md bg-indigo-500/10 flex items-center justify-center text-[9px] font-black text-indigo-500">
+                                                        {member.name[0]}
+                                                    </div>
+                                                    <span className="text-[11px] font-bold truncate">{member.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {splitBetweenIds.length === 0 && (
+                                            <p className="text-[9px] text-rose-500 font-bold px-1">Select at least one member to split with</p>
+                                        )}
+                                    </div>
+
+                                    {/* Auto Split Preview */}
+                                    {parseFloat(newExpense.amount) > 0 && splitBetweenIds.length > 0 && (
+                                        <MotionDiv
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between"
                                         >
-                                            Cancel
-                                        </Button>
+                                            <span className="text-[9px] text-emerald-500 uppercase tracking-widest font-black">Each person pays</span>
+                                            <span className="text-sm font-black text-emerald-500">₹{splitAmount}</span>
+                                        </MotionDiv>
+                                    )}
+
+                                    <div className="flex flex-col gap-2 pt-2">
                                         <Button
                                             type="submit"
-                                            className="flex-[2] h-14 rounded-2xl font-bold shadow-lg shadow-primary/20"
+                                            disabled={!newExpense.title || !newExpense.amount || parseFloat(newExpense.amount) <= 0 || splitBetweenIds.length === 0}
+                                            className="w-full h-11 rounded-xl font-bold shadow-lg shadow-primary/20 text-sm group"
                                         >
-                                            Save Expense
+                                            Add Expense
+                                            <Plus className="ml-2 h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
                                         </Button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsAddModalOpen(false)}
+                                            className="w-full text-center text-[10px] uppercase tracking-widest font-black text-muted-foreground hover:text-foreground transition-colors py-1.5"
+                                        >
+                                            Cancel
+                                        </button>
                                     </div>
                                 </form>
                             </div>
@@ -327,6 +584,6 @@ export default function ProjectExpensesPage() {
                     </div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }
