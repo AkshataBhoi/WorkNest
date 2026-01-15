@@ -10,7 +10,7 @@ import { X, Users } from "lucide-react";
 export default function WorkspaceExpensesRedirect() {
     const params = useParams();
     const router = useRouter();
-    const { getWorkspaceById, isInitialized, resetToMocks } = useWorkspaces();
+    const { getWorkspaceById, isInitialized } = useWorkspaces();
 
     const workspace = getWorkspaceById(params.id as string);
 
@@ -52,16 +52,6 @@ export default function WorkspaceExpensesRedirect() {
                         <Link href={`/workspace/${workspace.id}`}>
                             <Button className="h-12 px-8 rounded-2xl font-bold w-full">Go to Workspace</Button>
                         </Link>
-                        <Button
-                            variant="secondary"
-                            onClick={() => {
-                                resetToMocks();
-                                router.push("/dashboard");
-                            }}
-                            className="h-12 px-8 rounded-2xl font-bold w-full border border-white/10"
-                        >
-                            Restore Demo Data
-                        </Button>
                         <Link href="/dashboard">
                             <Button variant="ghost" className="h-12 px-8 rounded-2xl font-bold w-full opacity-60 hover:opacity-100">Back to Dashboard</Button>
                         </Link>

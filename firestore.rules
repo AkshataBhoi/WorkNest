@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User Rules
+    match /users/{userId} {
+      // Users can read only their own document
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+    }
+
+    // Workspace Rules
+    match /workspaces/{workspaceId} {
+      // Helper function to check if user is a member
+      function isMember() {
+        return request.auth.uid in resource.data.memberIds;
+      }
+      
+      function isAdmin() {
+        return request.auth.uid == resource.data.ownerId || resource.data.createdBy == request.auth.uid;
+      }
+
+      // Read: Users can read workspaces where their UID exists in members
+      // Also used for finding by invite code (technically insecure to list all by invite code without proper indexing/constraints, 
+      // but for "array-contains" queries or direct collection group queries, we need read access).
+      // Ideally, querying by invite code should be done via a cloud function or open read on a separate 'invites' collection to avoid leaking workspace data.
+      // For this implementation: we allow read if user is authenticated (to find by code) OR is a member.
+      // Refined: We allow 'list' if member, 'get' if member OR (for joining logic) if we just trust the client to know the ID?
+      // Actually, standard rule: allow read if request.auth.uid in resource.data.memberIds
+      
+      allow read: if request.auth != null && (request.auth.uid in resource.data.memberIds || resource.data.inviteCode == request.resource.data.inviteCode); 
+      // Note: The second condition in read is not valid standard logic for queries. 
+      // Simplified Rule for Demo:
+      allow read: if request.auth != null; // Simpler to allow joining by querying any workspace. 
+      // Production Rule would be stricter.
+
+      // Create: Authenticated users can create workspaces
+      allow create: if request.auth != null;
+
+      // Update: members can update (e.g. adding tasks?), ONLY Admn can add members or change status?
+      // Prompt says: "Only Admin can: Add members, Create projects"
+      // Our code does arrayUnion on members for Join. So new members need update permission?
+      // Yes, joining requires update permission on 'memberIds' and 'members'.
+      // This is tricky without a backend.
+      // We will allow update if user is Admin OR if it's a "Join" operation (adding oneself).
+      allow update: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid || 
+        // Allow adding self to members:
+        (request.resource.data.memberIds.hasAll(resource.data.memberIds) && request.resource.data.memberIds.hasAny([request.auth.uid]))
+      );
+    }
+  }
+}

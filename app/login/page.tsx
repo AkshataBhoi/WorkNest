@@ -7,16 +7,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye, EyeOff, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
 import Logo from "@/components/ui/Logo";
-import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/context/AuthContext";
 
 const MotionDiv = motion.div as any;
 
 export default function LoginPage() {
     const router = useRouter();
+    const { login, register, googleLogin } = useAuth();
     const [isSignup, setIsSignup] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [loadingText, setLoadingText] = useState("");
     const [error, setError] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
@@ -31,33 +33,57 @@ export default function LoginPage() {
         setLoading(true);
         setError("");
 
-        // Basic simulation
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        try {
+            if (isSignup) {
+                setLoadingText("Creating account...");
+                if (!name || !email || !password || !confirmPassword) throw new Error("Please fill in all fields");
+                if (password !== confirmPassword) throw new Error("Passwords do not match");
 
-        if (isSignup) {
-            if (!name || !email || !password || !confirmPassword) {
-                setError("Please fill in all fields");
-                setLoading(false);
-                return;
-            }
-            if (password !== confirmPassword) {
-                setError("Passwords do not match");
-                setLoading(false);
-                return;
-            }
-            localStorage.setItem("user", JSON.stringify({ name, email }));
-            router.push("/dashboard");
-        } else {
-            if (email === "admin@worknest.com" && password === "admin123") {
+                await register(name, email.trim(), password, "Member");
+                setLoadingText("Redirecting...");
                 router.push("/dashboard");
             } else {
+                setLoadingText("Verifying credentials...");
+                await login(email.trim(), password);
+                setLoadingText("Redirecting...");
+                router.push("/dashboard");
+            }
+        } catch (err: any) {
+            console.error("Auth error:", err);
+            setLoading(false);
+            if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
                 setError("Invalid email or password");
-                setLoading(false);
+            } else if (err.code === "auth/email-already-in-use") {
+                setError("Email already in use");
+            } else {
+                setError(err.message || "Authentication failed");
             }
         }
     };
 
+
+    const handleGoogleLogin = async () => {
+        setLoading(true);
+        setLoadingText("Connecting to Google...");
+        setError("");
+        try {
+            await googleLogin();
+            setLoadingText("Redirecting...");
+            router.push("/dashboard");
+        } catch (err: any) {
+            console.error("Google login error:", err);
+            if (err.code === "auth/popup-closed-by-user") {
+                setError("Sign in cancelled");
+            } else {
+                setError("Google login failed. Please try again.");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
+
         <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-slate-950 selection:bg-violet-500/30 overflow-y-hidden">
             {/* Left Branding Section - Static */}
             <div className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden bg-slate-900/50 border-r border-white/5">
@@ -138,6 +164,7 @@ export default function LoginPage() {
                                                     value={name}
                                                     onChange={(e) => setName(e.target.value)}
                                                     className="h-10 p-3 bg-white/5 border-white/10 text-white placeholder:text-slate-600 rounded-2xl focus:ring-violet-500/50"
+                                                    disabled={loading}
                                                 />
                                             </div>
                                         )}
@@ -150,6 +177,7 @@ export default function LoginPage() {
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
                                                 className="h-10 p-3 bg-white/5 border-white/10 text-white placeholder:text-slate-600 rounded-2xl focus:ring-violet-500/50"
+                                                disabled={loading}
                                             />
                                         </div>
 
@@ -164,11 +192,13 @@ export default function LoginPage() {
                                                     value={password}
                                                     onChange={(e) => setPassword(e.target.value)}
                                                     className="h-10 p-3 bg-white/5 border-white/10 text-white placeholder:text-slate-600 rounded-2xl focus:ring-violet-500/50 pr-10"
+                                                    disabled={loading}
                                                 />
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowPassword(!showPassword)}
                                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                                                    disabled={loading}
                                                 >
                                                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                                 </button>
@@ -184,6 +214,7 @@ export default function LoginPage() {
                                                     value={confirmPassword}
                                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                                     className="h-10 p-3 bg-white/5 border-white/10 text-white placeholder:text-slate-600 rounded-2xl focus:ring-violet-500/50"
+                                                    disabled={loading}
                                                 />
                                             </div>
                                         )}
@@ -200,7 +231,10 @@ export default function LoginPage() {
                                             className="h-12 w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:scale-[1.02] active:scale-[0.98] text-white font-bold rounded-2xl shadow-xl shadow-violet-600/20 transition-all border border-white/10"
                                         >
                                             {loading ? (
-                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                                <>
+                                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                                    {loadingText}
+                                                </>
                                             ) : (
                                                 <span className="flex items-center gap-2">
                                                     {isSignup ? "Create Account" : "Sign In"}
@@ -223,10 +257,10 @@ export default function LoginPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <Button variant="outline" className="h-11 rounded-2xl border-white/5 bg-white/[0.02] hover:bg-white/[0.05] text-slate-400 text-xs font-bold">
+                                    <Button onClick={handleGoogleLogin} disabled={loading} variant="outline" className="h-11 rounded-2xl border-white/5 bg-white/[0.02] hover:bg-white/[0.05] text-slate-400 text-xs font-bold">
                                         Google
                                     </Button>
-                                    <Button variant="outline" className="h-11 rounded-2xl border-white/5 bg-white/[0.02] hover:bg-white/[0.05] text-slate-400 text-xs font-bold">
+                                    <Button disabled={loading} variant="outline" className="h-11 rounded-2xl border-white/5 bg-white/[0.02] hover:bg-white/[0.05] text-slate-400 text-xs font-bold">
                                         Microsoft
                                     </Button>
                                 </div>
@@ -242,6 +276,7 @@ export default function LoginPage() {
                                 setError("");
                             }}
                             className="text-white font-bold hover:underline underline-offset-4 decoration-violet-500 transition-all"
+                            disabled={loading}
                         >
                             {isSignup ? "Log in here" : "Sign up free"}
                         </button>

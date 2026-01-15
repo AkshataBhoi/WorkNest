@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { WorkspaceProvider } from "@/components/context/WorkspaceContext";
+import { AuthProvider } from "@/components/context/AuthContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -24,9 +25,11 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <WorkspaceProvider>
-          {children}
-        </WorkspaceProvider>
+        <AuthProvider>
+          <WorkspaceProvider>
+            {children}
+          </WorkspaceProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useWorkspaces } from "@/components/context/WorkspaceContext";
+import { useAuth } from "@/components/context/AuthContext";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import PageTransition from "@/components/layout/PageTransition";
@@ -29,7 +30,8 @@ const MotionDiv = motion.div as any;
 export default function ProjectExpensesPage() {
     const params = useParams();
     const router = useRouter();
-    const { getWorkspaceById, addExpense, updateExpenseStatus, updateProjectStatus, currentUser } = useWorkspaces();
+    const { currentUser } = useAuth();
+    const { getWorkspaceById, addExpense, updateExpenseStatus, updateProjectStatus } = useWorkspaces();
 
     const workspaceId = params.id as string;
     const projectId = params.projectId as string;
@@ -41,7 +43,7 @@ export default function ProjectExpensesPage() {
     const [newExpense, setNewExpense] = useState({
         title: "",
         amount: "",
-        paidById: currentUser.id,
+        paidById: currentUser?.id || "",
         status: "Paid" as "Paid" | "Pending" | "Cleared"
     });
     const [splitBetweenIds, setSplitBetweenIds] = useState<string[]>(workspace?.members.map(m => m.id) || []);
@@ -71,7 +73,7 @@ export default function ProjectExpensesPage() {
             status: newExpense.status
         });
 
-        setNewExpense({ title: "", amount: "", paidById: currentUser.id, status: "Paid" });
+        setNewExpense({ title: "", amount: "", paidById: currentUser?.id || "", status: "Paid" });
         setSplitBetweenIds(workspace?.members.map(m => m.id) || []);
         setIsAddModalOpen(false);
     };
@@ -218,55 +220,55 @@ export default function ProjectExpensesPage() {
                                             {[...project.expenses]
                                                 .reverse()
                                                 .map((expense) => {
-                                                const paidBy = workspace.members.find(m => m.id === expense.paidById);
-                                                return (
-                                                    <div key={expense.id} className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all">
-                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                            <div className="h-8 w-8 sm:h-8 sm:w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                                                                <IndianRupee className="h-4 w-4" />
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <h4 className="font-bold text-sm leading-tight">{expense.title}</h4>
-                                                                <div className="flex items-center gap-2 mt-0.5">
-                                                                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                                                                        {paidBy?.name.split(" ")[0]} paid ₹{expense.amount.toLocaleString()}
-                                                                    </span>
-                                                                    <span className="text-[10px] text-muted-foreground">•</span>
-                                                                    <div className="flex -space-x-1">
-                                                                        {expense.splitBetween?.map((id) => {
-                                                                            const mem = workspace.members.find(m => m.id === id);
-                                                                            return (
-                                                                                <div key={id} title={mem?.name} className="h-4 w-4 rounded-full bg-white/10 border border-background flex items-center justify-center text-[8px] font-bold">
-                                                                                    {mem?.name[0]}
-                                                                                </div>
-                                                                            );
-                                                                        })}
+                                                    const paidBy = workspace.members.find(m => m.id === expense.paidById);
+                                                    return (
+                                                        <div key={expense.id} className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all">
+                                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                <div className="h-8 w-8 sm:h-8 sm:w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                                                    <IndianRupee className="h-4 w-4" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h4 className="font-bold text-sm leading-tight">{expense.title}</h4>
+                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                                                                            {paidBy?.name.split(" ")[0]} paid ₹{expense.amount.toLocaleString()}
+                                                                        </span>
+                                                                        <span className="text-[10px] text-muted-foreground">•</span>
+                                                                        <div className="flex -space-x-1">
+                                                                            {expense.splitBetween?.map((id) => {
+                                                                                const mem = workspace.members.find(m => m.id === id);
+                                                                                return (
+                                                                                    <div key={id} title={mem?.name} className="h-4 w-4 rounded-full bg-white/10 border border-background flex items-center justify-center text-[8px] font-bold">
+                                                                                        {mem?.name[0]}
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                        <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-3">
-                                                            <select
-                                                                value={expense.status}
-                                                                onChange={(e) => updateExpenseStatus(workspaceId, projectId, expense.id, e.target.value as any)}
-                                                                className={cn(
-                                                                    "text-xs sm:text-[10px] font-bold uppercase tracking-wider bg-background/80 border rounded-lg px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer transition-all flex-1 sm:flex-none min-w-[100px] sm:min-w-0",
-                                                                    expense.status === "Paid" ? "text-emerald-500 border-emerald-500/30 bg-emerald-500/10" :
-                                                                        expense.status === "Pending" ? "text-amber-500 border-amber-500/30 bg-amber-500/10" : "text-indigo-500 border-indigo-500/30 bg-indigo-500/10"
-                                                                )}
-                                                            >
-                                                                <option value="Paid" className="bg-background">Paid</option>
-                                                                <option value="Pending" className="bg-background">Pending</option>
-                                                                <option value="Cleared" className="bg-background">Cleared</option>
-                                                            </select>
-                                                            <div className="flex flex-col items-end shrink-0">
-                                                                <span className="font-black text-sm">₹{expense.amount.toLocaleString()}</span>
-                                                                <span className="text-[9px] text-muted-foreground">{expense.date}</span>
+                                                            <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-3">
+                                                                <select
+                                                                    value={expense.status}
+                                                                    onChange={(e) => updateExpenseStatus(workspaceId, projectId, expense.id, e.target.value as any)}
+                                                                    className={cn(
+                                                                        "text-xs sm:text-[10px] font-bold uppercase tracking-wider bg-background/80 border rounded-lg px-3 py-2 sm:px-2 sm:py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer transition-all flex-1 sm:flex-none min-w-[100px] sm:min-w-0",
+                                                                        expense.status === "Paid" ? "text-emerald-500 border-emerald-500/30 bg-emerald-500/10" :
+                                                                            expense.status === "Pending" ? "text-amber-500 border-amber-500/30 bg-amber-500/10" : "text-indigo-500 border-indigo-500/30 bg-indigo-500/10"
+                                                                    )}
+                                                                >
+                                                                    <option value="Paid" className="bg-background">Paid</option>
+                                                                    <option value="Pending" className="bg-background">Pending</option>
+                                                                    <option value="Cleared" className="bg-background">Cleared</option>
+                                                                </select>
+                                                                <div className="flex flex-col items-end shrink-0">
+                                                                    <span className="font-black text-sm">₹{expense.amount.toLocaleString()}</span>
+                                                                    <span className="text-[9px] text-muted-foreground">{expense.date}</span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                );
-                                            })}
+                                                    );
+                                                })}
                                         </div>
                                     ) : (
                                         <div className="py-20 text-center">
