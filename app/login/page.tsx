@@ -21,6 +21,7 @@ export default function LoginPage() {
     const [loadingText, setLoadingText] = useState("");
     const [error, setError] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [signupSuccess, setSignupSuccess] = useState(false);
 
     // Form states
     const [email, setEmail] = useState("");
@@ -40,8 +41,10 @@ export default function LoginPage() {
                 if (password !== confirmPassword) throw new Error("Passwords do not match");
 
                 await register(name, email.trim(), password, "Member");
-                setLoadingText("Redirecting...");
-                router.push("/dashboard");
+                setSignupSuccess(true);
+                setIsSignup(false);
+                setLoading(false);
+                setError(""); // Clear any previous errors
             } else {
                 setLoadingText("Verifying credentials...");
                 await login(email.trim(), password);
@@ -156,6 +159,12 @@ export default function LoginPage() {
                                     transition={{ duration: 0.3, ease: "easeInOut" }}
                                 >
                                     <form onSubmit={handleAuth} className="space-y-5">
+                                        {signupSuccess && !isSignup && (
+                                            <div className="flex items-center gap-3 text-sm font-bold text-emerald-400 bg-emerald-400/10 py-3 px-4 rounded-2xl border border-emerald-400/20 mb-2 animate-in fade-in slide-in-from-top-2">
+                                                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                                                Account Created! Please sign in.
+                                            </div>
+                                        )}
                                         {isSignup && (
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] ml-1">Full Name</label>
@@ -274,6 +283,7 @@ export default function LoginPage() {
                             onClick={() => {
                                 setIsSignup(!isSignup);
                                 setError("");
+                                setSignupSuccess(false);
                             }}
                             className="text-white font-bold hover:underline underline-offset-4 decoration-violet-500 transition-all"
                             disabled={loading}

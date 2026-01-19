@@ -87,7 +87,7 @@ export default function CreateWorkspacePage() {
             </div>
 
             {/* Card */}
-            <Card className="w-100 border-white/10 bg-card/40 backdrop-blur-xl shadow-2xl rounded-[2rem]">
+            <Card className="border-white/10 bg-card/40 backdrop-blur-xl shadow-2xl rounded-[2rem]">
               <CardContent className="p-6 space-y-6">
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
@@ -101,13 +101,13 @@ export default function CreateWorkspacePage() {
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
                       }
-                      className="h-10 p-3 rounded-2xl bg-background/50 border-white/10 font-bold"
+                      className="h-10 p-3 rounded-2xl bg-background/50 border-white/10 font-bold  text-transform: uppercase"
                       disabled={isLoading}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">
+                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1 ">
                       Description (Optional)
                     </label>
                     <Textarea
@@ -119,7 +119,7 @@ export default function CreateWorkspacePage() {
                           description: e.target.value,
                         })
                       }
-                      className="p-3 min-h-[80px] text-white rounded-2xl bg-background/50 border-white/10 resize-none text-sm"
+                      className="p-3 min-h-[80px] text-white rounded-2xl bg-background/50 border-white/10 resize-none text-sm  text-transform: capitalize"
                       disabled={isLoading}
                     />
                   </div>

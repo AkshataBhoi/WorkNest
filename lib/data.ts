@@ -7,6 +7,13 @@ export interface Member {
     joinedAt?: string; // ISO date string
 }
 
+export interface Invite {
+    id: string; // The invite code
+    workspaceId: string;
+    createdBy: string; // Admin UID
+    createdAt: any; // serverTimestamp or ISO
+}
+
 export interface Expense {
     id: string;
     title: string;
@@ -34,32 +41,27 @@ export interface Project {
     totalExpense: number;
     expenses: Expense[];
 }
-export type WorkspaceRole = "admin" | "member" | "viewer";
+export type WorkspaceRole = "Admin" | "Member" | "viewer";
 
 export interface Workspace {
     id: string;
     name: string;
     description: string;
-    // members: {
-    //     id: string;
-    //     email: string;
-    //     name: string;
-    //     role: WorkspaceRole;
-    // }[];
     status: "In Progress" | "Completed" | "On Hold" | "Pending";
-    role: WorkspaceRole; // ✅ ADD THIS
+    role: WorkspaceRole;
     membersCount: number;
     lastActive: string;
     progress: number;
-    members: Member[];
-    memberIds: string[];
+    members: Member[]; // Full objects for UI display
+    memberIds: string[]; // For queries
+    membersMap: { [uid: string]: "Admin" | "Member" }; // FOR RBAC
     inviteCode?: string;
-    memberEmails?: string[];
+    code?: string;
     projects: Project[];
     tasks: Task[];
-    ownerId?: string; // ID of the user who created the workspace
-    code?: string; // Alias for inviteCode/access code
-    createdAt?: any; // Firestore timestamp or ISO string
+    ownerId?: string; // Legacy field, keeping for compatibility
+    createdBy: string; // The Admin UID
+    createdAt?: any;
 }
 
 // export const MOCK_WORKSPACES: Workspace[] = [

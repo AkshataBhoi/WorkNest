@@ -157,7 +157,7 @@ export default function JoinWorkspacePage() {
                             setError(null);
                           }}
                           className={cn(
-                            "h-14 text-center text-2xl font-black tracking-widest bg-background/50 border-white/10 uppercase",
+                            "h-10 p-3 text-center text-2xl font-black tracking-widest bg-background/50 border-white/10 uppercase",
                             error && "border-red-500/50"
                           )}
                         />

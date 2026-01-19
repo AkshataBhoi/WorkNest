@@ -75,7 +75,7 @@ export function AddResponsibilityModal({ isOpen, onClose, onSave, members, proje
                             placeholder="What needs to be done?"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="bg-white/5 border-white/10 text-lg font-medium px-4 h-12 rounded-xl focus:ring-primary/20 transition-all"
+                            className="bg-white/5 border-white/10 text-lg font-medium px-4 h-10 p-3 rounded-xl focus:ring-primary/20 transition-all text-transform: capitalize"
                             autoFocus
                         />
                     </div>
@@ -91,7 +91,7 @@ export function AddResponsibilityModal({ isOpen, onClose, onSave, members, proje
                                 type="date"
                                 value={dueDate}
                                 onChange={(e) => setDueDate(e.target.value)}
-                                className="bg-white/5 border-white/10 h-10 rounded-lg text-sm"
+                                className="bg-white/5 border-white/10 h-10 p-3 rounded-lg text-sm"
                             />
                         </div>
 
@@ -151,7 +151,7 @@ export function AddResponsibilityModal({ isOpen, onClose, onSave, members, proje
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Add any extra details..."
-                            className="w-full h-24 p-3 rounded-xl bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                            className="w-full h-24 p-3 rounded-xl bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none text-transform: capitalize"
                         />
                     </div>
                 </div>

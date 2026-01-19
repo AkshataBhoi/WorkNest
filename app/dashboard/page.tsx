@@ -3,20 +3,30 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/components/context/AuthContext";
 import Link from "next/link";
-// import { Plus, Users, Search, Activity, LayoutDashboard, ArrowRight } from "lucide-react";
 import {
   Plus,
   Users,
   Search,
   MoreHorizontal,
   ArrowRight,
-  Calendar,
   Activity,
   LayoutDashboard,
   Eye,
-  Settings,
   Loader2,
+  Layers,
+  CheckCircle,
+  PauseCircle,
+  Archive,
 } from "lucide-react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/layout/Navbar";
@@ -24,6 +34,39 @@ import PageTransition from "@/components/layout/PageTransition";
 import { cn } from "@/lib/utils";
 import { useWorkspaces } from "@/components/context/WorkspaceContext";
 import { useRouter } from "next/navigation";
+import { WorkspaceActions } from "@/components/workspace/WorkspaceActions";
+
+export const STATUS_OPTIONS = [
+  {
+    key: "all",
+    label: "All",
+    icon: Layers,
+  },
+  {
+    key: "In Progress",
+    label: "In Progress",
+    icon: Loader2,
+    color: "text-amber-400",
+  },
+  {
+    key: "Completed",
+    label: "Completed",
+    icon: CheckCircle,
+    color: "text-emerald-400",
+  },
+  {
+    key: "On Hold",
+    label: "On Hold",
+    icon: PauseCircle,
+    color: "text-rose-400",
+  },
+  {
+    key: "Archived",
+    label: "Archived",
+    icon: Archive,
+    color: "text-slate-400",
+  },
+];
 
 const MotionTr = motion.tr as any;
 const MotionDiv = motion.div as any;
@@ -34,31 +77,41 @@ export default function DashboardPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | "mine" | "shared">(
-    "all"
+    "all",
   );
+
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const activeStatus =
+    STATUS_OPTIONS.find((s) => s.key === statusFilter) ?? STATUS_OPTIONS[0];
 
   const filteredWorkspaces = useMemo(() => {
     return workspaces
       .filter((ws) => {
-        // Filter by role/tab
+        // 1. Role/Tab Filter
         if (activeFilter === "mine") return ws.ownerId === currentUser?.id;
         if (activeFilter === "shared") return ws.ownerId !== currentUser?.id;
         return true;
       })
       .filter((ws) => {
-        // Filter by search query
+        // 2. Status Filter
+        if (statusFilter === "all") return true;
+        return ws.status === statusFilter;
+      })
+      .filter((ws) => {
+        // 3. Search Search Query
         const query = searchQuery.toLowerCase();
         return (
           ws.name.toLowerCase().includes(query) ||
           ws.description.toLowerCase().includes(query)
         );
       });
-  }, [workspaces, activeFilter, searchQuery, currentUser?.id]);
+  }, [workspaces, activeFilter, statusFilter, searchQuery, currentUser?.id]);
 
   const getTotalExpense = (workspace: any) => {
     return (workspace.projects || []).reduce(
       (sum: number, project: any) => sum + (project.totalExpense || 0),
-      0
+      0,
     );
   };
 
@@ -104,7 +157,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="w-full flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className=" flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 {/* Search + Filter Glass Group */}
                 <div className="w-full lg:max-w-[620px]">
                   <div className="flex flex-col sm:flex-row items-stretch gap-2 p-2 bg-card/30 backdrop-blur-xl rounded-[2rem] border border-white/5">
@@ -124,7 +177,7 @@ export default function DashboardPage() {
                       <select
                         value={activeFilter}
                         onChange={(e) => setActiveFilter(e.target.value as any)}
-                        className="appearance-none h-11 pl-5 pr-10 rounded-[2rem] bg-background/40 border border-white/5 text-[11px] font-black uppercase tracking-widest cursor-pointer focus:outline-none hover:text-primary transition-colors"
+                        className="appearance-none h-11 pl-5 pr-10  rounded-[2rem] bg-background/40 border border-white/5 text-[11px] font-black uppercase tracking-widest cursor-pointer focus:outline-none hover:text-primary transition-colors"
                       >
                         <option value="all" className="bg-slate-900">
                           All
@@ -139,6 +192,48 @@ export default function DashboardPage() {
 
                       <MoreHorizontal className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 rotate-90 text-muted-foreground pointer-events-none" />
                     </div>
+                    {/* status filter */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-white/10 bg-card/30 backdrop-blur-xl hover:bg-white/10 transition-all">
+                          <activeStatus.icon
+                            className={cn("h-4 w-4", activeStatus.color)}
+                          />
+                          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                      </DropdownMenuTrigger>
+
+                      <DropdownMenuContent
+                        align="start"
+                        className="w-52 rounded-2xl border border-white/10 bg-card/80 backdrop-blur-xl p-1 shadow-xl"
+                      >
+                        {STATUS_OPTIONS.map(
+                          ({ key, label, icon: Icon, color }) => {
+                            const active = statusFilter === key;
+
+                            return (
+                              <DropdownMenuItem
+                                key={key}
+                                onClick={() => setStatusFilter(key)}
+                                className={cn(
+                                  "flex items-center gap-3 rounded-xl px-3 py-2 text-sm cursor-pointer transition-all",
+                                  active
+                                    ? "bg-primary/10 text-primary"
+                                    : "hover:bg-white/10",
+                                )}
+                              >
+                                <Icon className={cn("h-4 w-4", color)} />
+                                <span className="flex-1">{label}</span>
+
+                                {active && (
+                                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                )}
+                              </DropdownMenuItem>
+                            );
+                          },
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 
@@ -148,7 +243,7 @@ export default function DashboardPage() {
                     href="/workspace/create"
                     className="flex-1 sm:flex-none"
                   >
-                    <Button className="w-full h-14 px-8 rounded-[1.2rem] shadow-2xl shadow-primary/20 bg-primary hover:scale-[1.03] transition-all active:scale-[0.97] font-black uppercase tracking-widest text-[12px]">
+                    <Button className="w-full h-14 px-8  rounded-[1.2rem] shadow-2xl shadow-primary/20 bg-primary hover:scale-[1.03] transition-all active:scale-[0.97] font-black uppercase tracking-widest text-[12px]">
                       <Plus className="mr-2 h-4 w-4" />
                       Create
                     </Button>
@@ -169,34 +264,42 @@ export default function DashboardPage() {
 
             {/* Workspace Grid / Table Container */}
             <div className="space-y-8">
-              <div className="hidden md:block group relative rounded-3xl border border-white/10 bg-card/30 backdrop-blur-xl transition-all duration-300 hover:border-white/20">
+              <div className="hidden min-[750px]:block group relative rounded-3xl border border-white/10 bg-card/30 backdrop-blur-xl transition-all duration-300 hover:border-white/20">
                 <div className="w-full overflow-auto">
-                  <table className="w-full text-sm text-left border-collapse">
+                  <table className="w-full table-fixed text-sm text-left border-collapse">
+                    <colgroup>
+                      <col className="w-[200px]" /> {/* Workspace */}
+                      <col className="hidden min-[1100px]:table-column w-[20%]" />
+                      {/* Details */}
+                      <col className="w-[120px]" /> {/* Status */}
+                      <col className="hidden min-[900px]:table-column w-[120px]" />
+                      {/* Expense */}
+                      <col className="hidden min-[1300px]:table-column w-[120px]" />
+                      {/* Team */}
+                      <col className="hidden min-[1200px]:table-column w-[150px]" />
+                      {/* Joined At */}
+                      <col className="w-[240px]" /> {/* Activity */}
+                    </colgroup>
                     <thead>
-                      <tr className="border-b border-white/5 h-14">
-                        <th className="px-6 font-semibold text-muted-foreground tracking-tight">
-                          Workspace
-                        </th>
-                        <th className="px-6 font-semibold text-muted-foreground tracking-tight hidden md:table-cell">
+                      <tr className="border-b border-white/5 h-14 text-sm text-muted-foreground">
+                        <th className="px-6 text-left">Workspace</th>
+                        <th className="px-6 text-left hidden min-[1100px]:table-cell">
                           Details
                         </th>
-                        <th className="px-6 font-semibold text-muted-foreground tracking-tight">
-                          Status
+                        <th className="px-6 text-left">Status</th>
+                        <th className="px-6 text-left hidden min-[900px]:table-cell">
+                          Expense
                         </th>
-                        <th className="px-6 font-semibold text-muted-foreground tracking-tight">
-                          Total Expense
-                        </th>
-                        <th className="px-6 font-semibold text-muted-foreground tracking-tight lg:table-cell hidden">
+                        <th className="px-6 text-left hidden min-[1300px]:table-cell">
                           Team
                         </th>
-                        <th className="px-6 font-semibold text-muted-foreground tracking-tight">
+                        <th className="px-6 text-left hidden min-[1200px]:table-cell">
                           Joined At
                         </th>
-                        <th className="px-6 font-semibold text-muted-foreground tracking-tight text-right">
-                          Activity
-                        </th>
+                        <th className="px-6 text-right">Activity</th>
                       </tr>
                     </thead>
+
                     <tbody className="divide-y divide-white/5">
                       <AnimatePresence mode="popLayout">
                         {filteredWorkspaces.map((ws, index) => (
@@ -214,12 +317,12 @@ export default function DashboardPage() {
                                 <div
                                   className={cn(
                                     "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border bg-gradient-to-br from-background/50 to-card transition-transform group-hover/row:scale-105 shadow-inner",
-                                    ws.role === "admin"
+                                    ws.role === "Admin"
                                       ? "border-primary/20"
-                                      : "border-white/10"
+                                      : "border-white/10",
                                   )}
                                 >
-                                  {ws.role === "admin" ? (
+                                  {ws.role === "Admin" ? (
                                     <div className="h-5 w-5 text-primary">
                                       <LayoutDashboard className="h-4 w-4" />
                                     </div>
@@ -237,8 +340,8 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-5 hidden md:table-cell max-w-xs">
-                              <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">
+                            <td className="px-6 py-5 hidden min-[1100px]:table-cell">
+                              <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed max-w-[200px]">
                                 {ws.description}
                               </p>
                             </td>
@@ -250,10 +353,10 @@ export default function DashboardPage() {
                                     ws.status === "In Progress"
                                       ? "bg-amber-400"
                                       : ws.status === "Completed"
-                                      ? "bg-emerald-400"
-                                      : ws.status === "On Hold"
-                                      ? "bg-rose-400"
-                                      : "bg-slate-400"
+                                        ? "bg-emerald-400"
+                                        : ws.status === "On Hold"
+                                          ? "bg-rose-400"
+                                          : "bg-slate-400",
                                   )}
                                 />
                                 <span
@@ -262,17 +365,17 @@ export default function DashboardPage() {
                                     ws.status === "In Progress"
                                       ? "text-amber-400"
                                       : ws.status === "Completed"
-                                      ? "text-emerald-400"
-                                      : ws.status === "On Hold"
-                                      ? "text-rose-400"
-                                      : "text-slate-400"
+                                        ? "text-emerald-400"
+                                        : ws.status === "On Hold"
+                                          ? "text-rose-400"
+                                          : "text-slate-400",
                                   )}
                                 >
                                   {ws.status}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-6 py-5">
+                            <td className="px-6 py-5 hidden min-[900px]:table-cell">
                               <Link
                                 href={`/workspace/${ws.id}/expenses`}
                                 className="inline-flex items-center justify-center h-9 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-medium transition-all"
@@ -280,7 +383,7 @@ export default function DashboardPage() {
                                 View
                               </Link>
                             </td>
-                            <td className="px-6 py-5 lg:table-cell hidden">
+                            <td className="px-6 py-5 hidden min-[1300px]:table-cell">
                               <div className="flex -space-x-2.5 overflow-hidden">
                                 {ws.members.slice(0, 3).map((member, i) => (
                                   <div
@@ -307,65 +410,71 @@ export default function DashboardPage() {
                                 )}
                               </div>
                             </td>
-                            <td className=" text-right whitespace-nowrap">
-                              <div className="flex items-center justify-end gap-3">
-                                <div className="flex flex-col items-end mr-4 hidden sm:flex">
+                            <td className="px-6 py-5 whitespace-nowrap hidden min-[1200px]:table-cell">
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-foreground">
                                   {(() => {
                                     const currentEmail =
                                       typeof window !== "undefined"
                                         ? localStorage.getItem(
-                                            "worknest_current_email"
-                                          )
+                                          "worknest_current_email",
+                                        )
                                         : null;
+
                                     const member = ws.members.find(
                                       (m) =>
                                         m.email === currentEmail ||
-                                        m.id === currentUser?.id
+                                        m.id === currentUser?.id,
                                     );
-                                    const joinDate =
+
+                                    const rawDate =
                                       member?.joinedAt ||
                                       ws.createdAt ||
                                       ws.lastActive;
 
-                                    try {
-                                      return new Date(
-                                        joinDate
-                                      ).toLocaleDateString("en-GB", {
-                                        day: "2-digit",
-                                        month: "short",
-                                        year: "numeric",
-                                      });
-                                    } catch (e) {
-                                      return "N/A";
+                                    if (!rawDate) return "N/A";
+
+                                    let date: Date;
+
+                                    // Firestore Timestamp support
+                                    if (
+                                      typeof rawDate === "object" &&
+                                      "toDate" in rawDate
+                                    ) {
+                                      date = rawDate.toDate();
+                                    } else {
+                                      date = new Date(rawDate);
                                     }
+
+                                    if (isNaN(date.getTime())) return "N/A";
+
+                                    return date.toLocaleDateString("en-GB", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    });
                                   })()}
-                                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
-                                    Last Edit
-                                  </span>
-                                </div>
+                                </span>
+                                <span className="text-[10px] text-muted-foreground uppercase opacity-50 tracking-wider">
+                                  Last edit
+                                </span>
                               </div>
                             </td>
                             <td className="px-6 py-5 text-right whitespace-nowrap">
                               <div className="flex items-center justify-end gap-3">
-                                <div className="flex flex-col items-end mr-4 hidden sm:flex">
-                                  {/* <span className="text-foreground font-medium flex items-center gap-1.5">
-                                    <Calendar className="h-3 w-3 opacity-50" />
-                                    {ws.lastActive}
-                                  </span> */}
-
-                                  {/* <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
-                                    Last Edit
-                                  </span> */}
-                                </div>
                                 <Link
                                   href={`/workspace/${ws.id}`}
-                                  className="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-white/5 bg-white/5 hover:bg-primary hover:text-primary-foreground transition-all duration-300 text-sm font-medium"
+                                  className="inline-flex items-center justify-center h-10 px-5 rounded-xl border border-white/10 bg-white/5 hover:bg-primary hover:border-primary/50 hover:text-primary-foreground transition-all duration-300 text-sm font-bold"
                                 >
                                   Open Workspace
                                   <ArrowRight className="ml-2 h-3.5 w-3.5" />
                                 </Link>
+                                <WorkspaceActions workspace={ws} />
                               </div>
                             </td>
+                            {/* <td className="px-6 py-5 text-right">
+                              <WorkspaceActions workspace={ws} />
+                            </td> */}
                           </MotionTr>
                         ))}
                       </AnimatePresence>
@@ -390,7 +499,7 @@ export default function DashboardPage() {
                   </MotionDiv>
                 )}
               </div>
-              <div className="md:hidden space-y-4">
+              <div className="min-[750px]:hidden space-y-4">
                 <AnimatePresence mode="popLayout">
                   {filteredWorkspaces.map((ws, index) => (
                     <MotionDiv
@@ -406,12 +515,12 @@ export default function DashboardPage() {
                           <div
                             className={cn(
                               "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border bg-gradient-to-br from-background/50 to-card shadow-inner",
-                              ws.role === "admin"
+                              ws.role === "Admin"
                                 ? "border-primary/20"
-                                : "border-white/10"
+                                : "border-white/10",
                             )}
                           >
-                            {ws.role === "admin" ? (
+                            {ws.role === "Admin" ? (
                               <LayoutDashboard className="h-5 w-5 text-primary" />
                             ) : (
                               <Users className="h-5 w-5 text-muted-foreground" />
@@ -436,10 +545,10 @@ export default function DashboardPage() {
                               ws.status === "In Progress"
                                 ? "bg-amber-400"
                                 : ws.status === "Completed"
-                                ? "bg-emerald-400"
-                                : ws.status === "On Hold"
-                                ? "bg-rose-400"
-                                : "bg-slate-400"
+                                  ? "bg-emerald-400"
+                                  : ws.status === "On Hold"
+                                    ? "bg-rose-400"
+                                    : "bg-slate-400",
                             )}
                           />
                           <span
@@ -448,37 +557,15 @@ export default function DashboardPage() {
                               ws.status === "In Progress"
                                 ? "text-amber-400"
                                 : ws.status === "Completed"
-                                ? "text-emerald-400"
-                                : ws.status === "On Hold"
-                                ? "text-rose-400"
-                                : "text-slate-400"
+                                  ? "text-emerald-400"
+                                  : ws.status === "On Hold"
+                                    ? "text-rose-400"
+                                    : "text-slate-400",
                             )}
                           >
                             {ws.status}
                           </span>
                         </div>
-                        {/* <div className="text-right">
-                          <span className="text-xs text-muted-foreground uppercase tracking-widest block mb-1">
-                            Joined At
-                          </span>
-                          <span className="text-sm font-bold text-foreground">
-                            {(() => {
-                              const currentEmail = typeof window !== "undefined" ? localStorage.getItem("worknest_current_email") : null;
-                              const member = ws.members.find(m => m.email === currentEmail || m.id === currentUser?.id);
-                              const joinDate = member?.joinedAt || ws.createdAt || ws.lastActive;
-
-                              try {
-                                return new Date(joinDate).toLocaleDateString('en-GB', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric'
-                                });
-                              } catch (e) {
-                                return "N/A";
-                              }
-                            })()}
-                          </span>
-                        </div> */}
                         <div className="text-right">
                           <span className="text-xs text-muted-foreground uppercase tracking-widest block mb-1">
                             Expense
@@ -497,13 +584,7 @@ export default function DashboardPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Link>
-                        {/* <Link
-                                                    href={`/workspace/${ws.id}`}
-                                                    className="inline-flex items-center justify-center h-10 w-10 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
-                                                    title="Manage Workspace"
-                                                >
-                                                    <Settings className="h-4 w-4" />
-                                                </Link> */}
+                        <WorkspaceActions workspace={ws} />
                       </div>
                     </MotionDiv>
                   ))}

@@ -49,7 +49,7 @@ export function AddProjectModal({ isOpen, onClose, onSave }: AddProjectModalProp
                             placeholder="e.g. Website Redesign"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="bg-white/5 border-white/10 h-10 rounded-lg text-sm transition-all"
+                            className="bg-white/5 border-white/10 h-10 p-3 rounded-lg text-sm transition-all text-transform: uppercase"
                             autoFocus
                         />
                     </div>

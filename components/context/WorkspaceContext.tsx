@@ -7,7 +7,7 @@ import React, {
   useEffect,
   useMemo,
 } from "react";
-import { Workspace, Member, Expense, Project, Task } from "@/lib/data";
+import { Workspace, Member, Expense, Project, Task, WorkspaceRole } from "@/lib/data";
 import { useAuth } from "./AuthContext";
 import { db } from "@/lib/firebase.client";
 
@@ -22,7 +22,9 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  deleteDoc,
   serverTimestamp,
+  writeBatch,
 } from "firebase/firestore";
 
 interface WorkspaceContextType {
@@ -59,13 +61,15 @@ interface WorkspaceContextType {
     status: Task["status"]
   ) => Promise<void>;
   createProject: (workspaceId: string, name: string) => Promise<void>;
-  getUserRole: (workspaceId: string) => "Admin" | "Member" | null;
+  getUserRole: (workspaceId: string) => WorkspaceRole | null;
   validateInviteCode: (inviteCode: string) => Promise<string | null>;
   joinWorkspaceWithEmail: (
     workspaceId: string,
     email: string,
     name: string
   ) => Promise<boolean>;
+  removeMember: (workspaceId: string, memberId: string) => Promise<boolean>;
+  deleteWorkspace: (workspaceId: string) => Promise<boolean>;
   isInitialized: boolean;
 }
 
@@ -109,17 +113,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         ? localStorage.getItem("worknest_current_email")
         : null;
 
-    const q = currentUser?.id
+    const q = (currentUser?.id && db)
       ? query(
         collection(db, "workspaces"),
         where("memberIds", "array-contains", currentUser.id)
       )
-      : storedEmail
-        ? query(
-          collection(db, "workspaces"),
-          where("memberEmails", "array-contains", storedEmail)
-        )
-        : null;
+      : null;
 
     if (!q) {
       setWorkspaces([]);
@@ -132,28 +131,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         const fetchedWorkspaces = snapshot.docs.map((doc) => {
           const data = doc.data();
 
-          let role: "admin" | "member" | "viewer" = "viewer";
+          let role: WorkspaceRole = "viewer";
 
-          if (currentUser?.id) {
-            if (data.ownerId === currentUser.id) {
-              role = "admin";
-            } else if (Array.isArray(data.members)) {
-              const member = data.members.find(
-                (m: any) => m.id === currentUser.id
-              );
-              role = (member?.role?.toLowerCase() ?? "member") as
-                | "admin"
-                | "member"
-                | "viewer";
-            }
+          if (currentUser?.id && data.membersMap) {
+            role = data.membersMap[currentUser.id] || "viewer";
           } else if (storedEmail && Array.isArray(data.members)) {
             const member = data.members.find(
               (m: any) => m.email === storedEmail
             );
-            role = (member?.role?.toLowerCase() ?? "member") as
-              | "admin"
-              | "member"
-              | "viewer";
+            role = (member?.role ?? "Member") as WorkspaceRole;
           }
 
           return {
@@ -172,7 +158,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       error: (error: any) => {
         // Ignore transient "offline" log noise in dev, but set initialized to prevent infinite loading
         if (error.code !== "unavailable") {
-          console.error("Workspace listener error:", error);
+          console.error("Workspace listener error:", {
+            code: error.code,
+            message: error.message,
+            uid: currentUser?.id,
+            isAuthLoading
+          });
         }
         setIsInitialized(true);
       },
@@ -198,7 +189,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const createWorkspace = async (name: string, description: string) => {
-    if (!currentUser?.id || !db) throw new Error("Connection or Auth missing.");
+    if (!currentUser?.id || !db) {
+      console.error("Cannot create workspace: Auth or DB missing", { userId: currentUser?.id });
+      throw new Error("Unable to create workspace. Please ensure you are signed in.");
+    }
 
     const inviteCode = generateInviteCode();
     const ownerMember: Member = {
@@ -219,58 +213,55 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       inviteCode,
       code: inviteCode,
       ownerId: currentUser.id,
+      createdBy: currentUser.id,
       members: [ownerMember],
       memberIds: [currentUser.id],
+      membersMap: {
+        [currentUser.id]: "Admin"
+      },
       projects: [],
       tasks: [],
-      createdAt: new Date().toISOString(),
+      createdAt: serverTimestamp(),
     };
 
-    // Use doc() to generate a reference with an ID locally.
-    // This allows returning the ID IMMEDIATELY without waiting for Firestore server roundtrip.
-    const docRef = doc(collection(db, "workspaces"));
-    const workspaceId = docRef.id;
+    // Use batched write to ensure both workspace and invite are created
+    const batch = writeBatch(db);
+    const workspaceRef = doc(collection(db, "workspaces"));
+    const inviteRef = doc(db, "invites", inviteCode);
 
-    // Fire and forget the write - Firestore persistence will sync it eventually,
-    // and correctly handle the local cache update in the meantime.
-    setDoc(docRef, newWorkspaceData).catch((err: any) => {
-      console.error("Delayed workspace creation failed:", err);
+    batch.set(workspaceRef, newWorkspaceData);
+    batch.set(inviteRef, {
+      workspaceId: workspaceRef.id,
+      createdBy: currentUser.id,
+      createdAt: serverTimestamp(),
     });
 
-    return workspaceId;
+    await batch.commit();
+
+    return workspaceRef.id;
   };
 
   const joinWorkspace = async (inviteCode: string): Promise<boolean> => {
     if (!currentUser?.id || !db) return false;
 
     try {
-      const q = query(
-        collection(db, "workspaces"),
-        where("inviteCode", "==", inviteCode)
-      );
+      const inviteRef = doc(db, "invites", inviteCode);
+      const inviteSnap = await getDoc(inviteRef);
 
-      const querySnapshot = await getDocs(q);
-
-      let workspaceId: string | null = null;
-
-      if (!querySnapshot.empty) {
-        workspaceId = querySnapshot.docs[0].id;
-      } else {
-        const q2 = query(
-          collection(db, "workspaces"),
-          where("code", "==", inviteCode)
-        );
-
-        const snap2 = await getDocs(q2);
-        if (snap2.empty) return false;
-
-        workspaceId = snap2.docs[0].id;
+      if (!inviteSnap.exists()) {
+        console.error("Invalid invite code");
+        return false;
       }
 
+      const { workspaceId } = inviteSnap.data();
       const joined = await applyJoin(workspaceId);
 
       if (joined) {
-        setPendingJoin(true); // ✅ VERY IMPORTANT
+        // Option A: Delete the invite (Single use)
+        // Option B: Keep it (Multi use)
+        // User said: "Mark invite as used or delete it"
+        await deleteDoc(inviteRef);
+        setPendingJoin(true);
       }
 
       return joined;
@@ -285,20 +276,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
   ): Promise<string | null> => {
     if (!db) return null;
     try {
-      // First attempt: try getting from both fields
-      const q1 = query(
-        collection(db, "workspaces"),
-        where("inviteCode", "==", inviteCode)
-      );
-      const snap1 = await getDocs(q1);
-      if (!snap1.empty) return snap1.docs[0].id;
+      const inviteRef = doc(db, "invites", inviteCode);
+      const inviteSnap = await getDoc(inviteRef);
 
-      const q2 = query(
-        collection(db, "workspaces"),
-        where("code", "==", inviteCode)
-      );
-      const snap2 = await getDocs(q2);
-      if (!snap2.empty) return snap2.docs[0].id;
+      if (inviteSnap.exists()) {
+        return inviteSnap.data().workspaceId;
+      }
 
       return null;
     } catch (err: any) {
@@ -319,11 +302,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!wsSnap.exists()) return false;
 
       const wsData = wsSnap.data() as Workspace;
-      const memberEmails = wsData.memberEmails || [];
+      const memberIds = wsData.memberIds || [];
 
-      if (memberEmails.includes(email)) {
-        // Already a member, just update local storage for identity
-        localStorage.setItem("worknest_current_email", email);
+      if (currentUser?.id && memberIds.includes(currentUser.id)) {
+        // Already a member
         return true;
       }
 
@@ -342,7 +324,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
       await updateDoc(workspaceRef, {
         members: updatedMembers,
-        memberEmails: [...memberEmails, email],
         memberIds: [...(wsData.memberIds || []), newMember.id],
         membersCount: updatedMembers.length,
       });
@@ -377,10 +358,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       ...(workspaceData.memberIds || []),
       currentUser.id,
     ];
+    const updatedMembersMap = {
+      ...(workspaceData.membersMap || {}),
+      [currentUser.id]: "Member"
+    };
 
     await updateDoc(workspaceRef, {
       members: updatedMembers,
       memberIds: updatedMemberIds,
+      membersMap: updatedMembersMap,
       membersCount: updatedMembers.length,
     });
 
@@ -390,27 +376,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
   const getWorkspaceById = (id: string) =>
     workspaces.find((ws) => ws.id === id);
 
-  const getUserRole = (workspaceId: string): "Admin" | "Member" | null => {
+  const getUserRole = (workspaceId: string): WorkspaceRole | null => {
     if (!currentUser?.id) return null;
 
     const workspace = workspaces.find((ws) => ws.id === workspaceId);
     if (!workspace) return null;
 
-    // Owner is always Admin
-    if (workspace.ownerId === currentUser.id) {
-      return "Admin";
-    }
-
-    const member = workspace.members.find((m) =>
-      currentUser?.id
-        ? m.id === currentUser.id
-        : m.email === localStorage.getItem("worknest_current_email")
-    );
-
-    if (!member) return null;
-
-    // Normalize role
-    return member.role === "Admin" ? "Admin" : "Member";
+    return workspace.membersMap?.[currentUser.id] || "viewer";
   };
 
   const createProject = async (workspaceId: string, name: string) => {
@@ -572,6 +544,82 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const removeMember = async (workspaceId: string, memberId: string): Promise<boolean> => {
+    if (!db || !currentUser?.id) return false;
+
+    try {
+      const workspaceRef = doc(db, "workspaces", workspaceId);
+      const wsSnap = await getDoc(workspaceRef);
+      if (!wsSnap.exists()) return false;
+
+      const wsData = wsSnap.data() as Workspace;
+
+      // Permission Check: Only Admin can remove members
+      if (wsData.membersMap?.[currentUser.id] !== "Admin") {
+        throw new Error("Unauthorized: Only admins can remove members.");
+      }
+
+      // Safety Check: Prevent removing the last Admin
+      const admins = wsData.members.filter(m => m.role === "Admin");
+      const targetMember = wsData.members.find(m => m.id === memberId);
+      if (targetMember?.role === "Admin" && admins.length <= 1) {
+        throw new Error("Safety check: Cannot remove the last remaining admin.");
+      }
+
+      const updatedMembers = (wsData.members || []).filter(m => m.id !== memberId);
+      const updatedMemberIds = (wsData.memberIds || []).filter(id => id !== memberId);
+
+      const updatedMembersMap = { ...(wsData.membersMap || {}) };
+      delete updatedMembersMap[memberId];
+
+      await updateDoc(workspaceRef, {
+        members: updatedMembers,
+        memberIds: updatedMemberIds,
+        membersMap: updatedMembersMap,
+        membersCount: updatedMembers.length,
+      });
+
+      return true;
+    } catch (err: any) {
+      console.error("removeMember failed:", err);
+      throw err;
+    }
+  };
+
+  const deleteWorkspace = async (workspaceId: string): Promise<boolean> => {
+    if (!db || !currentUser?.id) return false;
+
+    try {
+      const workspaceRef = doc(db, "workspaces", workspaceId);
+      const wsSnap = await getDoc(workspaceRef);
+      if (!wsSnap.exists()) return false;
+
+      const wsData = wsSnap.data() as Workspace;
+
+      // Permission Check: Only Admin can delete the workspace
+      if (wsData.membersMap?.[currentUser.id] !== "Admin") {
+        throw new Error("Unauthorized: Only admins can delete the workspace.");
+      }
+
+      const inviteCode = wsData.inviteCode || wsData.code;
+
+      // Use a batch to delete both workspace and invite
+      const batch = writeBatch(db);
+      batch.delete(workspaceRef);
+
+      if (inviteCode) {
+        const inviteRef = doc(db, "invites", inviteCode);
+        batch.delete(inviteRef);
+      }
+
+      await batch.commit();
+      return true;
+    } catch (err: any) {
+      console.error("deleteWorkspace failed:", err);
+      throw err;
+    }
+  };
+
   return (
     <WorkspaceContext.Provider
       value={{
@@ -591,6 +639,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         getUserRole,
         validateInviteCode,
         joinWorkspaceWithEmail,
+        removeMember,
+        deleteWorkspace,
         isInitialized,
       }}
     >

@@ -40,7 +40,7 @@ export function ResponsibilityCard({ task, members, projects, onStatusChange }: 
 
     return (
         <div className={cn(
-            "group flex flex-col md:flex-row md:items-center justify-between p-5 rounded-[2rem] bg-[#131316] border border-white/5 hover:border-white/10 transition-all gap-6 shadow-xl",
+            "group flex flex-col md:flex-row md:items-center justify-between p-5 rounded-[2rem] bg-[#131316] border border-white/5 hover:border-white/10 transition-all gap-6 shadow-xl bg-card/30 backdrop-blur-xl",
             task.status === "Completed" && "opacity-70 grayscale-[0.3]"
         )}>
             <div className="flex items-start gap-5 flex-1">

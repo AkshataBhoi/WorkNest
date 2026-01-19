@@ -130,10 +130,10 @@ export default function WorkspaceDetailsPage() {
                         workspace.status === "Completed"
                           ? "text-emerald-500 border-emerald-500/20"
                           : workspace.status === "In Progress"
-                          ? "text-amber-500 border-amber-500/20"
-                          : workspace.status === "On Hold"
-                          ? "text-rose-500 border-rose-500/20"
-                          : "text-slate-500 border-slate-500/20"
+                            ? "text-amber-500 border-amber-500/20"
+                            : workspace.status === "On Hold"
+                              ? "text-rose-500 border-rose-500/20"
+                              : "text-slate-500 border-slate-500/20"
                       )}
                     >
                       <option value="In Progress">In Progress</option>
@@ -148,10 +148,10 @@ export default function WorkspaceDetailsPage() {
                         workspace.status === "Completed"
                           ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                           : workspace.status === "In Progress"
-                          ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                          : workspace.status === "On Hold"
-                          ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
-                          : "bg-slate-500/10 text-slate-500 border-slate-500/20"
+                            ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                            : workspace.status === "On Hold"
+                              ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                              : "bg-slate-500/10 text-slate-500 border-slate-500/20"
                       )}
                     >
                       {workspace.status}
@@ -159,9 +159,9 @@ export default function WorkspaceDetailsPage() {
                   )}
                 </div>
 
-                <p className="text-sm font-bold tracking-tight lg:text-2xl text-foreground">
+                {/* <p className="text-sm font-bold tracking-tight lg:text-2xl text-foreground">
                   Responsibilities
-                </p>
+                </p> */}
               </div>
             </div>
 
@@ -247,7 +247,7 @@ export default function WorkspaceDetailsPage() {
                     />
                   ))
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-20 px-4 text-center rounded-[2.5rem] border border-dashed border-white/10 bg-white/[0.02] shadow-inner">
+                  <div className="flex flex-col  items-center justify-center py-20 px-4 text-center rounded-[2.5rem] border border-dashed border-white/10 bg-white/[0.02] shadow-inner">
                     <div className="h-16 w-16 mb-6 rounded-[1.5rem] bg-white/5 flex items-center justify-center">
                       <CheckCircle2 className="h-8 w-8 text-muted-foreground/30" />
                     </div>
