@@ -57,6 +57,3 @@ WorkNest is a modern, multi-domain workspace management platform designed to hel
 * Mobile: Simplified views with card-based layouts
 
 ---
-
-
-If you want, I can also make an **even shorter “one-page” README** under 100 lines that’s super clean for GitHub. Do you want me to do that?
