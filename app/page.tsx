@@ -11,10 +11,12 @@ import { motion } from "framer-motion";
 import { ProcessTimeline } from "@/components/landing/ProcessTimeline";
 import PremiumBackground from "@/components/landing/PremiumBackground";
 import HeroVisual from "@/components/landing/HeroVisual";
+import { useAuth } from "@/components/context/AuthContext";
 
 const MotionDiv = motion.div as any;
 
 export default function Home() {
+  const { isAuthenticated } = useAuth();
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -69,9 +71,13 @@ export default function Home() {
                     and collaborate efficiently - all in one unified, high-performance workspace.
                   </p>
 
+
+
+                  {/* // ... inside return ... */}
                   <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                     <Link href="/signup" className="w-full sm:w-auto">
                       <Button size="lg" className="group w-full sm:w-auto rounded-full px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 text-base sm:text-lg font-bold bg-gradient-to-r from-primary/60 to-purple-500/80 shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                        {/* {isAuthenticated ? "Go to Dashboard" : "Get Started"} */}
                         Get Started
                         <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:translate-x-1" />
                       </Button>

@@ -27,6 +27,7 @@ interface AuthContextType {
     role?: UserRole,
   ) => Promise<void>;
   googleLogin: () => Promise<void>;
+  updateAvatar: (url: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -185,6 +186,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const updateAvatar = async (url: string) => {
+    verifyInit();
+    if (!currentUser?.id || !db) return;
+
+    try {
+      const userRef = doc(db, "users", currentUser.id);
+      await setDoc(userRef, { avatarUrl: url }, { merge: true });
+      setCurrentUser(prev => prev ? { ...prev, avatarUrl: url } : null);
+    } catch (error) {
+      console.error("Update avatar failed:", error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -195,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         logout,
         register,
         googleLogin,
+        updateAvatar,
       }}
     >
       {children}

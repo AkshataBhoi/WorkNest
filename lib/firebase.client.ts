@@ -1,8 +1,7 @@
-"use client";
-
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, Auth } from "firebase/auth";
 import { getFirestore, Firestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -17,6 +16,7 @@ const firebaseConfig = {
 let firebaseApp: FirebaseApp;
 let firebaseAuth: Auth;
 let firebaseDb: Firestore;
+let firebaseStorage: FirebaseStorage;
 
 if (typeof window !== "undefined") {
   if (!getApps().length) {
@@ -27,21 +27,25 @@ if (typeof window !== "undefined") {
       })
     });
     firebaseAuth = getAuth(firebaseApp);
+    firebaseStorage = getStorage(firebaseApp);
   } else {
     firebaseApp = getApp();
     firebaseDb = getFirestore(firebaseApp);
     firebaseAuth = getAuth(firebaseApp);
+    firebaseStorage = getStorage(firebaseApp);
   }
 } else {
   // Mock/Empty for SSR to prevent crashes
   firebaseApp = {} as FirebaseApp;
   firebaseAuth = {} as Auth;
   firebaseDb = {} as Firestore;
+  firebaseStorage = {} as FirebaseStorage;
 }
 
 export const app = firebaseApp;
 export const auth = firebaseAuth;
 export const db = firebaseDb;
+export const storage = firebaseStorage;
 export const googleProvider = new GoogleAuthProvider();
 
 export default app;

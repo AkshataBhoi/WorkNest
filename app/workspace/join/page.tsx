@@ -196,6 +196,7 @@ export default function JoinWorkspacePage() {
         open={showPicker}
         onOpenChange={setShowPicker}
         onSelectAccount={handleAccountSelect}
+        currentUser={currentUser}
       />
     </div >
   );

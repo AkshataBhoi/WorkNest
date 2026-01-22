@@ -43,10 +43,10 @@ export default function CreateWorkspacePage() {
       );
 
       // ✅ Redirect to copy-code page (as decided)
-      router.push(`/workspace/code/${id}`);
+      await router.push(`/workspace/code/${id}`);
+      // Note: We intentionally do NOT set isLoading(false) here to prevent flash of content before redirect
     } catch (error) {
       console.error("Failed to create workspace:", error);
-    } finally {
       setIsLoading(false);
     }
   };

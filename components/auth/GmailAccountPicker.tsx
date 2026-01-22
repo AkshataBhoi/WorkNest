@@ -11,10 +11,29 @@ interface GmailAccountPickerProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSelectAccount: (account: GmailAccount) => void;
+    currentUser?: { name: string | null; email: string | null; id: string } | null;
 }
 
-export function GmailAccountPicker({ open, onOpenChange, onSelectAccount }: GmailAccountPickerProps) {
+export function GmailAccountPicker({ open, onOpenChange, onSelectAccount, currentUser }: GmailAccountPickerProps) {
     const [selectedId, setSelectedId] = React.useState<string | null>(null);
+
+    // Auto-select effect if needed, or just let user click to confirm
+    // The prompt says "Auto-selected", which could mean visually selected or skipping step.
+    // Given "Show ONLY...", user likely needs to see and confirm (click).
+
+    // Construct accounts list based on auth state
+    const accounts: GmailAccount[] = React.useMemo(() => {
+        if (currentUser && currentUser.email) {
+            return [{
+                id: currentUser.id,
+                name: currentUser.name || "User",
+                email: currentUser.email,
+                type: 'work', // Default to work for authenticated context
+                avatar: ""
+            }];
+        }
+        return MOCK_GMAIL_ACCOUNTS;
+    }, [currentUser]);
 
     const handleSelect = (account: GmailAccount) => {
         setSelectedId(account.id);
@@ -27,23 +46,25 @@ export function GmailAccountPicker({ open, onOpenChange, onSelectAccount }: Gmai
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-white/10">
+            <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md bg-card/95 backdrop-blur-xl border-white/10 rounded-[2rem]">
                 <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold">Choose an account</DialogTitle>
+                    <DialogTitle className="text-xl sm:text-2xl font-black">
+                        {currentUser ? "Confirm Account" : "Choose an account"}
+                    </DialogTitle>
                     <DialogDescription className="text-muted-foreground">
-                        to continue to WorkNest
+                        to join this workspace
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-2 py-4">
-                    {MOCK_GMAIL_ACCOUNTS.map((account) => (
+                    {accounts.map((account) => (
                         <button
                             key={account.id}
                             onClick={() => handleSelect(account)}
                             className={cn(
                                 "w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-200",
                                 "hover:bg-white/5 hover:border-primary/30",
-                                selectedId === account.id
+                                (selectedId === account.id || accounts.length === 1) // Auto-highlight if single
                                     ? "bg-primary/10 border-primary/50"
                                     : "bg-background/50 border-white/10"
                             )}
@@ -70,7 +91,7 @@ export function GmailAccountPicker({ open, onOpenChange, onSelectAccount }: Gmai
                             </div>
 
                             {/* Check Icon */}
-                            {selectedId === account.id && (
+                            {(selectedId === account.id || accounts.length === 1) && (
                                 <Check className="h-5 w-5 text-primary shrink-0" />
                             )}
                         </button>
@@ -79,7 +100,11 @@ export function GmailAccountPicker({ open, onOpenChange, onSelectAccount }: Gmai
 
                 <div className="flex items-center gap-2 pt-4 border-t border-white/5 text-xs text-muted-foreground">
                     <Mail className="h-3 w-3" />
-                    <span>Select the account you want to use for this workspace</span>
+                    <span>
+                        {currentUser
+                            ? "You are securely logged in."
+                            : "Select the account you want to use for this workspace"}
+                    </span>
                 </div>
             </DialogContent>
         </Dialog>

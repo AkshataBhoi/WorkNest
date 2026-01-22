@@ -1,21 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
 import Logo from "@/components/ui/Logo";
-import { useAuth } from "@/components/context/AuthContext";
+import { Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const MotionDiv = motion.div as any;
 
 export default function LoginPage() {
+  const { login, register, googleLogin, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
-  const { login, register, googleLogin } = useAuth();
+
   const [isSignup, setIsSignup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("");
@@ -31,6 +32,8 @@ export default function LoginPage() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Guard against double submission
+
     setLoading(true);
     setError("");
 
@@ -51,7 +54,8 @@ export default function LoginPage() {
         setLoadingText("Verifying credentials...");
         await login(email.trim(), password);
         setLoadingText("Redirecting...");
-        router.push("/dashboard");
+        // Delay redirect slightly to ensure auth state settles if needed, though useAuth should handle it
+        await router.push("/dashboard");
       }
     } catch (err: any) {
       console.error("Auth error:", err);
@@ -71,22 +75,23 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    if (loading) return; // Guard against double submission
+
     setLoading(true);
     setLoadingText("Connecting to Google...");
     setError("");
     try {
       await googleLogin();
       setLoadingText("Redirecting...");
-      router.push("/dashboard");
+      await router.push("/dashboard");
     } catch (err: any) {
       console.error("Google login error:", err);
+      setLoading(false); // Only stop loading on error, let redirect continue otherwise
       if (err.code === "auth/popup-closed-by-user") {
         setError("Sign in cancelled");
       } else {
         setError("Google login failed. Please try again.");
       }
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -304,13 +304,29 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       const wsData = wsSnap.data() as Workspace;
       const memberIds = wsData.memberIds || [];
 
+      // Check if user is already linked by ID or Email
       if (currentUser?.id && memberIds.includes(currentUser.id)) {
-        // Already a member
         return true;
       }
 
+      const existingMember = wsData.members.find(m => m.email === email);
+      if (existingMember) {
+        // If member exists by email but ID is missing in memberIds (legacy sync issue), fix it
+        if (currentUser?.id && existingMember.email === currentUser.email && !memberIds.includes(currentUser.id)) {
+          await updateDoc(workspaceRef, {
+            memberIds: [...memberIds, currentUser.id]
+          });
+        }
+        return true;
+      }
+
+      // Use real ID if authenticated and email matches, otherwise fallback (though this flow usually implies auth)
+      const userId = (currentUser?.id && currentUser.email === email)
+        ? currentUser.id
+        : `m-${Date.now()}`;
+
       const newMember: Member = {
-        id: `m-${Date.now()}`,
+        id: userId,
         name: name,
         email: email,
         role: "Member",
@@ -322,9 +338,18 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         { ...newMember, joinedAt: new Date().toISOString() },
       ];
 
+      const newMemberIds = [...(wsData.memberIds || [])];
+      if (!newMemberIds.includes(userId)) {
+        newMemberIds.push(userId);
+      }
+
       await updateDoc(workspaceRef, {
         members: updatedMembers,
-        memberIds: [...(wsData.memberIds || []), newMember.id],
+        memberIds: newMemberIds,
+        membersMap: {
+          ...(wsData.membersMap || {}),
+          [userId]: "Member"
+        },
         membersCount: updatedMembers.length,
       });
 

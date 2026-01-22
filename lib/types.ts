@@ -8,6 +8,7 @@ export interface User {
     email: string;
     password?: string; // Optional for Firebase Auth users
     role: UserRole;
+    avatarUrl?: string;
     createdAt: string;
 }
 

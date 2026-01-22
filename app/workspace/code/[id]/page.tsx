@@ -52,14 +52,14 @@ export default function WorkspaceCodePage() {
             <div className="absolute top-0 right-0 -z-10 h-[600px] w-[600px] rounded-full bg-primary/10 blur-[120px]" />
             <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] rounded-full bg-accent/5 blur-[120px]" />
 
-            <main className="container mx-auto max-w-xl px-4 py-16 sm:py-24 relative z-10">
+            <main className="container mx-auto max-w-xl px-4 py-7 border sm:py-15 relative z-10">
                 <PageTransition>
                     <MotionDiv
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className="space-y-8"
                     >
-                        <Card className="border-white/10 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden text-center py-12">
+                        <Card className="border-white/10 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden text-center py-6">
                             <CardHeader className="pt-0">
                                 <div className="mx-auto h-20 w-20 rounded-[2.5rem] border-4 border-emerald-500/20 bg-emerald-500/10 flex items-center justify-center mb-6">
                                     <CheckCircle2 className="h-10 w-10 text-emerald-500" />

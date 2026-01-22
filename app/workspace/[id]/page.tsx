@@ -300,7 +300,7 @@ export default function WorkspaceDetailsPage() {
                         className="group p-6 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all cursor-default"
                       >
                         <div className="flex items-center justify-between mb-6">
-                          <span className="text-[15px] font-black text-foreground group-hover:text-primary transition-colors">
+                          <span className="text-[15px] font-black text-transform: capitalize text-foreground group-hover:text-primary transition-colors">
                             {project.name}
                           </span>
                           <div className="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[9px] font-black text-amber-500 uppercase tracking-widest">

@@ -169,7 +169,7 @@ export default function ProjectExpensesPage() {
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                             <div className="space-y-3">
                                 <div className="flex items-center gap-3">
-                                    <h1 className="text-2xl font-black tracking-tight">{project.name}</h1>
+                                    <h1 className="text-2xl font-black text-tranform: capitalize tracking-tight">{project.name}</h1>
                                     <div className="px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-[10px] font-black uppercase tracking-wider">
                                         {workspace.name}
                                     </div>
@@ -247,7 +247,7 @@ export default function ProjectExpensesPage() {
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-3">
+                                                            <div className="w-[80%] sm:w-auto flex items-center justify-between sm:justify-end gap-4">
                                                                 <select
                                                                     value={expense.status}
                                                                     onChange={(e) => updateExpenseStatus(workspaceId, projectId, expense.id, e.target.value as any)}

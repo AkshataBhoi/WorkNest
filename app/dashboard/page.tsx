@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/components/context/AuthContext";
 import Link from "next/link";
 import {
@@ -60,12 +61,12 @@ export const STATUS_OPTIONS = [
     icon: PauseCircle,
     color: "text-rose-400",
   },
-  {
-    key: "Archived",
-    label: "Archived",
-    icon: Archive,
-    color: "text-slate-400",
-  },
+  // {
+  //   key: "Archived",
+  //   label: "Archived",
+  //   icon: Archive,
+  //   color: "text-slate-400",
+  // },
 ];
 
 const MotionTr = motion.tr as any;
@@ -81,6 +82,8 @@ export default function DashboardPage() {
   );
 
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const isMobile = useIsMobile();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const activeStatus =
     STATUS_OPTIONS.find((s) => s.key === statusFilter) ?? STATUS_OPTIONS[0];
@@ -107,6 +110,20 @@ export default function DashboardPage() {
         );
       });
   }, [workspaces, activeFilter, statusFilter, searchQuery, currentUser?.id]);
+
+  function useIsMobile(breakpoint = 640) {
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+      const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+      const handler = () => setIsMobile(mq.matches);
+      handler();
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
+    }, [breakpoint]);
+
+    return isMobile;
+  }
 
   const getTotalExpense = (workspace: any) => {
     return (workspace.projects || []).reduce(
@@ -159,7 +176,7 @@ export default function DashboardPage() {
 
               <div className=" flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 {/* Search + Filter Glass Group */}
-                <div className="w-full lg:max-w-[620px]">
+                <div className="w-full lg:max-w-[750px]">
                   <div className="flex flex-col sm:flex-row items-stretch gap-2 p-2 bg-card/30 backdrop-blur-xl rounded-[2rem] border border-white/5">
                     {/* Search */}
                     <div className="relative flex-1 group">
@@ -172,92 +189,181 @@ export default function DashboardPage() {
                       />
                     </div>
 
-                    {/* Filter */}
-                    <div className="relative shrink-0">
-                      <select
-                        value={activeFilter}
-                        onChange={(e) => setActiveFilter(e.target.value as any)}
-                        className="appearance-none h-11 pl-5 pr-10  rounded-[2rem] bg-background/40 border border-white/5 text-[11px] font-black uppercase tracking-widest cursor-pointer focus:outline-none hover:text-primary transition-colors"
-                      >
-                        <option value="all" className="bg-slate-900">
-                          All
-                        </option>
-                        <option value="mine" className="bg-slate-900">
-                          Mine
-                        </option>
-                        <option value="shared" className="bg-slate-900">
-                          Shared
-                        </option>
-                      </select>
+                    <div className="flex gap-4 items-center justify-between">
+                      {/* Ownership Filter */}
+                      <div className="relative shrink-0">
+                        <select
+                          value={activeFilter}
+                          onChange={(e) =>
+                            setActiveFilter(e.target.value as any)
+                          }
+                          className="appearance-none h-11 pl-5 pr-10 rounded-[2rem] bg-background/40 border border-white/5 text-[11px] font-black uppercase tracking-widest cursor-pointer focus:outline-none hover:text-primary transition-colors"
+                        >
+                          <option value="all" className="bg-slate-900">
+                            All
+                          </option>
+                          <option value="mine" className="bg-slate-900">
+                            Mine
+                          </option>
+                          <option value="shared" className="bg-slate-900">
+                            Shared
+                          </option>
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+                      </div>
 
-                      <MoreHorizontal className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 rotate-90 text-muted-foreground pointer-events-none" />
+                      {/* Status Filter - Responsive UI Pattern with Icons */}
+                      {!isMobile && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="inline-flex items-center justify-between gap-3 h-11 min-w-[120px] px-5 rounded-full bg-background/40 border border-white/5 text-[11px] font-black uppercase tracking-widest hover:text-primary transition-all group">
+                              <div className="flex items-center gap-2">
+                                <activeStatus.icon
+                                  className={cn(
+                                    "h-3.5 w-3.5",
+                                    activeStatus.color,
+                                  )}
+                                />
+                                <span>{activeStatus.label}</span>
+                              </div>
+                              <ChevronDown className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                            </button>
+                          </DropdownMenuTrigger>
+
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-52 rounded-2xl border border-white/10 bg-slate-900/95 backdrop-blur-xl p-1 shadow-2xl z-[100]"
+                          >
+                            {STATUS_OPTIONS.map(
+                              ({ key, label, icon: Icon, color }) => {
+                                const active = statusFilter === key;
+                                return (
+                                  <DropdownMenuItem
+                                    key={key}
+                                    onClick={() => setStatusFilter(key)}
+                                    className={cn(
+                                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] font-black uppercase tracking-widest cursor-pointer transition-all",
+                                      active
+                                        ? "bg-primary/10 text-primary"
+                                        : "hover:bg-white/5 text-muted-foreground hover:text-foreground",
+                                    )}
+                                  >
+                                    <Icon className={cn("h-4 w-4", color)} />
+                                    <span className="flex-1">{label}</span>
+                                    {active && (
+                                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                    )}
+                                  </DropdownMenuItem>
+                                );
+                              },
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                      {isMobile && (
+                        <>
+                          <button
+                            onClick={() => setMobileOpen(true)}
+                            className="inline-flex items-center justify-between gap-3 h-11 min-w-[100px] px-5 rounded-full bg-background/40 border border-white/10 text-[11px] font-black uppercase tracking-widest">
+                            <activeStatus.icon
+                              className={cn("h-3.5 w-3.5", activeStatus.color)}
+                            />
+                            {activeStatus.label}
+                            <ChevronDown className="h-3 w-3 ml-1 text-muted-foreground" />
+                          </button>
+
+                          {mobileOpen && (
+                            typeof document !== "undefined" ? (
+                              createPortal(
+                                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+                                  {/* MODAL */}
+                                  <div
+                                    className="w-full max-w-sm max-h-[70vh] rounded-3xl bg-slate-900 border border-white/10 shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                                      <h2 className="text-xs font-black uppercase tracking-widest">
+                                        Status Filter
+                                      </h2>
+                                      <button
+                                        onClick={() => setMobileOpen(false)}
+                                        className="text-muted-foreground text-[10px] font-bold"
+                                      >
+                                        Close
+                                      </button>
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="p-3 space-y-2 overflow-y-auto">
+                                      {STATUS_OPTIONS.map(
+                                        ({ key, label, icon: Icon, color }) => {
+                                          const active = statusFilter === key;
+                                          return (
+                                            <button
+                                              key={key}
+                                              onClick={() => {
+                                                setStatusFilter(key);
+                                                setMobileOpen(false);
+                                              }}
+                                              className={cn(
+                                                "w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all",
+                                                active
+                                                  ? "bg-primary/15 text-primary"
+                                                  : "bg-white/5 text-muted-foreground hover:text-foreground",
+                                              )}
+                                            >
+                                              <Icon
+                                                className={cn("h-4 w-4", color)}
+                                              />
+                                              <span className="flex-1 text-left">
+                                                {label}
+                                              </span>
+                                              {active && (
+                                                <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                              )}
+                                            </button>
+                                          );
+                                        },
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>,
+                                document.body
+                              )
+                            ) : null
+                          )}
+                        </>
+                      )}
                     </div>
-                    {/* status filter */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-white/10 bg-card/30 backdrop-blur-xl hover:bg-white/10 transition-all">
-                          <activeStatus.icon
-                            className={cn("h-4 w-4", activeStatus.color)}
-                          />
-                          <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                        </button>
-                      </DropdownMenuTrigger>
-
-                      <DropdownMenuContent
-                        align="start"
-                        className="w-52 rounded-2xl border border-white/10 bg-card/80 backdrop-blur-xl p-1 shadow-xl"
-                      >
-                        {STATUS_OPTIONS.map(
-                          ({ key, label, icon: Icon, color }) => {
-                            const active = statusFilter === key;
-
-                            return (
-                              <DropdownMenuItem
-                                key={key}
-                                onClick={() => setStatusFilter(key)}
-                                className={cn(
-                                  "flex items-center gap-3 rounded-xl px-3 py-2 text-sm cursor-pointer transition-all",
-                                  active
-                                    ? "bg-primary/10 text-primary"
-                                    : "hover:bg-white/10",
-                                )}
-                              >
-                                <Icon className={cn("h-4 w-4", color)} />
-                                <span className="flex-1">{label}</span>
-
-                                {active && (
-                                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                                )}
-                              </DropdownMenuItem>
-                            );
-                          },
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-3 w-full sm:w-auto">
-                  <Link
-                    href="/workspace/create"
-                    className="flex-1 sm:flex-none"
-                  >
-                    <Button className="w-full h-14 px-8  rounded-[1.2rem] shadow-2xl shadow-primary/20 bg-primary hover:scale-[1.03] transition-all active:scale-[0.97] font-black uppercase tracking-widest text-[12px]">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create
-                    </Button>
-                  </Link>
-
-                  <Link href="/workspace/join" className="flex-1 sm:flex-none">
-                    <Button
-                      variant="outline"
-                      className="w-full h-14 px-8 rounded-[1.2rem] border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 transition-all font-black uppercase tracking-widest text-[12px]"
+                <div className="relative z-10">
+                  <div className="flex gap-3 w-full sm:w-auto">
+                    <Link
+                      href="/workspace/create"
+                      className="flex-1 sm:flex-none"
                     >
-                      <Users className="mr-2 h-4 w-4" />
-                      Join
-                    </Button>
-                  </Link>
+                      <Button className="w-full h-14 px-8 rounded-[1.2rem] shadow-2xl shadow-primary/20 bg-primary hover:scale-[1.03] transition-all active:scale-[0.97] font-black uppercase tracking-widest text-[12px]">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create
+                      </Button>
+                    </Link>
+
+                    <Link
+                      href="/workspace/join"
+                      className="flex-1 sm:flex-none"
+                    >
+                      <Button
+                        variant="outline"
+                        className="w-full h-14 px-8 rounded-[1.2rem] border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 transition-all font-black uppercase tracking-widest text-[12px]"
+                      >
+                        <Users className="mr-2 h-4 w-4" />
+                        Join
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
@@ -268,17 +374,15 @@ export default function DashboardPage() {
                 <div className="w-full overflow-auto">
                   <table className="w-full table-fixed text-sm text-left border-collapse">
                     <colgroup>
-                      <col className="w-[200px]" /> {/* Workspace */}
-                      <col className="hidden min-[1100px]:table-column w-[20%]" />
-                      {/* Details */}
-                      <col className="w-[120px]" /> {/* Status */}
-                      <col className="hidden min-[900px]:table-column w-[120px]" />
-                      {/* Expense */}
-                      <col className="hidden min-[1300px]:table-column w-[120px]" />
-                      {/* Team */}
-                      <col className="hidden min-[1200px]:table-column w-[150px]" />
-                      {/* Joined At */}
-                      <col className="w-[240px]" /> {/* Activity */}
+                      <>
+                        <col className="w-[200px]" />
+                        <col className="hidden min-[1100px]:table-column w-[20%]" />
+                        <col className="w-[120px]" />
+                        <col className="hidden min-[900px]:table-column w-[120px]" />
+                        <col className="hidden min-[1300px]:table-column w-[120px]" />
+                        <col className="hidden min-[1200px]:table-column w-[150px]" />
+                        <col className="w-[240px]" />
+                      </>
                     </colgroup>
                     <thead>
                       <tr className="border-b border-white/5 h-14 text-sm text-muted-foreground">
@@ -324,7 +428,7 @@ export default function DashboardPage() {
                                 >
                                   {ws.role === "Admin" ? (
                                     <div className="h-5 w-5 text-primary">
-                                      <LayoutDashboard className="h-4 w-4" />
+                                      <LayoutDashboard className="h-6 w-6" />
                                     </div>
                                   ) : (
                                     <Users className="h-5 w-5 text-muted-foreground" />

@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/ui/Logo";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut, Loader2 } from "lucide-react";
+import { useAuth } from "@/components/context/AuthContext";
 
 const MotionNav = motion.nav as any;
 const MotionDiv = motion.div as any;
 
 export default function Navbar() {
+  const { isAuthenticated, logout, isLoading } = useAuth();
   const pathname = usePathname();
   const isDashboard =
     pathname.startsWith("/dashboard") || pathname.startsWith("/workspace");
@@ -31,7 +33,10 @@ export default function Navbar() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">
-          {!isDashboard ? (
+          {isLoading ? (
+            // Loading State - Render nothing or a skeleton to prevent flicker
+            <div className="w-[100px] h-10" />
+          ) : !isAuthenticated ? (
             <>
               <Button
                 // asChild
@@ -44,15 +49,17 @@ export default function Navbar() {
               </Button>
             </>
           ) : (
-            <Link href="/">
+            <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
                 size="sm"
-                className="rounded-full px-6 hover:bg-white/5 font-semibold text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-red-400 hover:bg-red-500/10 gap-2"
+                onClick={logout}
               >
-                Log Out
+                <LogOut className="h-4 w-4" />
+                <span>Log Out</span>
               </Button>
-            </Link>
+            </div>
           )}
         </div>
 
@@ -84,15 +91,12 @@ export default function Navbar() {
             className="md:hidden border-t border-white/10 bg-slate-950/95 backdrop-blur-md overflow-hidden"
           >
             <div className="container mx-auto px-6 py-4 space-y-3">
-              {!isDashboard ? (
+              {isLoading ? (
+                <div className="w-full h-12 flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : !isAuthenticated ? (
                 <>
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors py-2"
-                  >
-                    Sign Up
-                  </Link>
                   <Link
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
@@ -105,18 +109,19 @@ export default function Navbar() {
                   </Link>
                 </>
               ) : (
-                <Link
-                  href="/"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block"
-                >
+                <div className="py-2 flex flex-col gap-4 items-center">
                   <Button
                     variant="ghost"
-                    className="w-full rounded-xl hover:bg-white/5 font-semibold text-muted-foreground hover:text-foreground"
+                    className="w-full justify-start text-muted-foreground hover:text-red-400 hover:bg-red-500/10 gap-2"
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
                   >
-                    Log Out
+                    <LogOut className="h-4 w-4" />
+                    <span>Log Out</span>
                   </Button>
-                </Link>
+                </div>
               )}
             </div>
           </MotionDiv>
