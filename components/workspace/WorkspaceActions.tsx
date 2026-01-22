@@ -164,15 +164,36 @@ export function WorkspaceActions({
             typeof document !== "undefined" &&
             createPortal(
               <div
-                className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+                className="
+            fixed
+    left-1/2 top-1/2
+    -translate-x-[69%] -translate-y-1/2
+    z-[10000] w-[90vw] max-w-xs max-h-[80vh] inset-0
+            flex items-center justify-center
+          "
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <div
-                  className="w-full max-w-sm bg-slate-900 border border-white/10 rounded-3xl p-4 shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-300"
+                  className="
+              relative
+              w-[92vh] max-w-sm
+              bg-slate-900
+              border border-white/10
+              rounded-3xl
+              p-4
+              shadow-2xl
+              animate-in
+              slide-in-from-bottom-6
+              fade-in
+              duration-200
+            "
                   onClick={(e) => e.stopPropagation()}
                 >
+                  {/* Header */}
                   <div className="flex items-center justify-between mb-4 px-2">
-                    <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Actions</span>
+                    <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                      Actions
+                    </span>
                     <button
                       onClick={() => setMobileMenuOpen(false)}
                       className="p-1 rounded-full hover:bg-white/10"
@@ -181,8 +202,8 @@ export function WorkspaceActions({
                     </button>
                   </div>
 
+                  {/* Actions */}
                   <div className="space-y-2">
-                    {/* View Expenses */}
                     <button
                       onClick={() => {
                         setMobileMenuOpen(false);
@@ -196,7 +217,6 @@ export function WorkspaceActions({
 
                     {isAdmin && (
                       <>
-                        {/* Remove Member */}
                         <button
                           onClick={() => {
                             setMobileMenuOpen(false);
@@ -208,7 +228,6 @@ export function WorkspaceActions({
                           Remove Member
                         </button>
 
-                        {/* Delete */}
                         <button
                           onClick={() => {
                             setMobileMenuOpen(false);
@@ -224,7 +243,7 @@ export function WorkspaceActions({
                   </div>
                 </div>
               </div>,
-              document.body
+              document.body,
             )}
         </>
       )}
@@ -233,10 +252,12 @@ export function WorkspaceActions({
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent
           className="
+          fixed
+          left-1/2 top-1/2
+          -translate-x-[69%] -translate-y-1/2
+          z-[10000] w-[80vw] max-w-xs max-h-[80vh]
           bg-[#0F0F12] border-white/10
-          rounded-[2rem] shadow-2xl
-          w-[90vw] max-w-md
-          max-h-[85vh] overflow-y-auto
+          rounded-[2rem] shadow-2xl overflow-y-auto
           p-6 sm:p-8
         "
         >
@@ -289,14 +310,13 @@ export function WorkspaceActions({
       <Dialog open={isRemoveMemberOpen} onOpenChange={setIsRemoveMemberOpen}>
         <DialogContent
           className="
+          fixed
+          left-1/2 top-1/2
+          -translate-x-[69%] -translate-y-1/2
+          z-[10000] w-[80vw] max-w-xs max-h-[80vh]
           bg-[#0F0F12] border-white/10
-          rounded-[2rem] shadow-2xl
-          w-[90vw] max-w-md
-          max-h-[85vh] overflow-y-auto
-          p-6 sm:p-8
-        "
-        >
-
+          rounded-[2rem] shadow-2xl overflow-y-auto
+          p-6 sm:p-8">
           <DialogHeader>
             <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-4 sm:mb-6 ring-1 ring-primary/20">
               <UserMinus className="h-6 w-6 sm:h-7 sm:w-7" />

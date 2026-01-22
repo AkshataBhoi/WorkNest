@@ -275,64 +275,86 @@ export default function DashboardPage() {
                           </button>
 
                           {mobileOpen && (
-                            typeof document !== "undefined" ? (
-                              createPortal(
-                                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-                                  {/* MODAL */}
-                                  <div
-                                    className="w-full max-w-sm max-h-[70vh] rounded-3xl bg-slate-900 border border-white/10 shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200">
-                                    {/* Header */}
-                                    <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-                                      <h2 className="text-xs font-black uppercase tracking-widest">
-                                        Status Filter
-                                      </h2>
-                                      <button
-                                        onClick={() => setMobileOpen(false)}
-                                        className="text-muted-foreground text-[10px] font-bold"
-                                      >
-                                        Close
-                                      </button>
-                                    </div>
+  typeof document !== "undefined" ? (
+    createPortal(
+      <div className="fixed inset-0 z-[9999] isolate pointer-events-auto">
+        {/* Overlay */}
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+        />
 
-                                    {/* Content */}
-                                    <div className="p-3 space-y-2 overflow-y-auto">
-                                      {STATUS_OPTIONS.map(
-                                        ({ key, label, icon: Icon, color }) => {
-                                          const active = statusFilter === key;
-                                          return (
-                                            <button
-                                              key={key}
-                                              onClick={() => {
-                                                setStatusFilter(key);
-                                                setMobileOpen(false);
-                                              }}
-                                              className={cn(
-                                                "w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all",
-                                                active
-                                                  ? "bg-primary/15 text-primary"
-                                                  : "bg-white/5 text-muted-foreground hover:text-foreground",
-                                              )}
-                                            >
-                                              <Icon
-                                                className={cn("h-4 w-4", color)}
-                                              />
-                                              <span className="flex-1 text-left">
-                                                {label}
-                                              </span>
-                                              {active && (
-                                                <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                                              )}
-                                            </button>
-                                          );
-                                        },
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>,
-                                document.body
-                              )
-                            ) : null
-                          )}
+        {/* Modal - Perfectly Centered and Compact */}
+        <div
+  className="
+    fixed
+    left-1/2 top-1/2
+    -translate-x-[69%] -translate-y-1/2
+    z-[10000]
+    w-[90vw] max-w-xs max-h-[80vh]
+    overflow-hidden
+    rounded-2xl
+    bg-slate-900
+    border border-white/10
+    shadow-2xl
+    flex flex-col
+    animate-in fade-in zoom-in-95 duration-200
+  "
+  onClick={(e) => e.stopPropagation()}
+>
+          {/* Header */}
+          <div className="flex items-center justify-center relative px-4 py-3 border-b border-white/10 shrink-0">
+            <h2 className="text-xs font-black uppercase tracking-widest text-center">
+              Status Filter
+            </h2>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="absolute right-4 text-muted-foreground text-[10px] font-bold"
+            >
+              Close
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="p-3 space-y-2 overflow-y-auto">
+            {STATUS_OPTIONS.map(
+              ({ key, label, icon: Icon, color }) => {
+                const active = statusFilter === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      setStatusFilter(key);
+                      setMobileOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-3 rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-widest transition-all",
+                      active
+                        ? "bg-primary/15 text-primary"
+                        : "bg-white/5 text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Icon
+                      className={cn("h-3.5 w-3.5", color)}
+                    />
+                    <span className="flex-1 text-left">
+                      {label}
+                    </span>
+                    {active && (
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    )}
+                  </button>
+                );
+              },
+            )}
+          </div>
+        </div>
+      </div>,
+      document.body
+    )
+  ) : null
+)}
+
                         </>
                       )}
                     </div>
