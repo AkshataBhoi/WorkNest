@@ -110,26 +110,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
+    let mounted = true;
+
     const unsub = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
           // Small delay to ensure Firestore SDK has the token ready
           // await new Promise(resolve => setTimeout(resolve, 50)); 
           const syncedUser = await syncUser(user);
-          if (!syncedUser) {
-            console.warn("User authenticated but Firestore sync returned null.");
+          if (mounted) {
+            if (!syncedUser) {
+              console.warn("User authenticated but Firestore sync returned null.");
+            }
           }
         } else {
-          setCurrentUser(null);
+          if (mounted) {
+            setCurrentUser(null);
+          }
         }
       } catch (error) {
         console.error("Auth state change error:", error);
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     });
 
-    return () => unsub();
+    return () => {
+      mounted = false;
+      unsub();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<void> => {
