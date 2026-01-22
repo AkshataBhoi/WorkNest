@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   MoreVertical,
   UserMinus,
@@ -82,7 +83,7 @@ export function WorkspaceActions({
     }
   };
 
-  function useIsMobile(breakpoint = 640) {
+  function useIsMobile(breakpoint = 650) {
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
@@ -97,6 +98,13 @@ export function WorkspaceActions({
   }
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile menu on resize to desktop
+  useEffect(() => {
+    if (!isMobile && mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+  }, [isMobile, mobileMenuOpen]);
 
   return (
     <div className="flex items-center">
@@ -144,62 +152,81 @@ export function WorkspaceActions({
         </DropdownMenu>
       )}
       {isMobile && (
-        <div className="relative">
+        <>
           <button
-            onClick={() => setMobileMenuOpen((v) => !v)}
+            onClick={() => setMobileMenuOpen(true)}
             className="h-9 w-9 flex items-center justify-center rounded-lg border border-white/10 bg-white/5"
           >
             <MoreVertical className="h-4 w-4" />
           </button>
 
-          {mobileMenuOpen && (
-            <div className="absolute right-0 mt-2 w-44 rounded-xl border border-white/10 bg-slate-900/95 backdrop-blur-xl shadow-2xl z-[120] p-1">
-              {/* View Expenses */}
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  router.push(`/workspace/${workspace.id}/expenses`);
-                }}
-                className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold hover:bg-white/10 transition"
+          {mobileMenuOpen &&
+            typeof document !== "undefined" &&
+            createPortal(
+              <div
+                className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+                onClick={() => setMobileMenuOpen(false)}
               >
-                <Wallet className="h-4 w-4 text-emerald-400" />
-                View Expenses
-              </button>
+                <div
+                  className="w-full max-w-sm bg-slate-900 border border-white/10 rounded-3xl p-4 shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-300"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between mb-4 px-2">
+                    <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Actions</span>
+                    <button
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="p-1 rounded-full hover:bg-white/10"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
 
-              {isAdmin && (
-                <>
-                  <div className="h-px bg-white/5 my-1" />
+                  <div className="space-y-2">
+                    {/* View Expenses */}
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        router.push(`/workspace/${workspace.id}/expenses`);
+                      }}
+                      className="flex items-center gap-3 w-full px-4 py-3.5 rounded-2xl bg-white/5 text-sm font-bold hover:bg-white/10 transition border border-white/5"
+                    >
+                      <Wallet className="h-4 w-4 text-emerald-400" />
+                      View Expenses
+                    </button>
 
-                  {/* Remove Member */}
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      setIsRemoveMemberOpen(true);
-                    }}
-                    className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold hover:bg-white/10 transition"
-                  >
-                    <UserMinus className="h-4 w-4 text-primary" />
-                    Remove Member
-                  </button>
+                    {isAdmin && (
+                      <>
+                        {/* Remove Member */}
+                        <button
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setIsRemoveMemberOpen(true);
+                          }}
+                          className="flex items-center gap-3 w-full px-4 py-3.5 rounded-2xl bg-white/5 text-sm font-bold hover:bg-white/10 transition border border-white/5"
+                        >
+                          <UserMinus className="h-4 w-4 text-primary" />
+                          Remove Member
+                        </button>
 
-                  <div className="h-px bg-white/5 my-1" />
-
-                  {/* Delete */}
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      setIsDeleteDialogOpen(true);
-                    }}
-                    className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-400/10 transition"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete Workspace
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
+                        {/* Delete */}
+                        <button
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="flex items-center gap-3 w-full px-4 py-3.5 rounded-2xl bg-rose-500/10 text-rose-400 text-sm font-bold hover:bg-rose-500/20 transition border border-rose-500/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete Workspace
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
+        </>
       )}
 
       {/* Delete Confirmation Modal */}
@@ -207,8 +234,10 @@ export function WorkspaceActions({
         <DialogContent
           className="
           bg-[#0F0F12] border-white/10
-          rounded-[2.5rem] shadow-2xl
-          p-6 sm:p-8 overflow-hidden
+          rounded-[2rem] shadow-2xl
+          w-[90vw] max-w-md
+          max-h-[85vh] overflow-y-auto
+          p-6 sm:p-8
         "
         >
           <div className="absolute top-0 right-0 p-6 opacity-20 pointer-events-none hidden sm:block">
@@ -244,7 +273,7 @@ export function WorkspaceActions({
               variant="danger"
               onClick={handleDeleteWorkspace}
               disabled={isLoading}
-              className="h-11 sm:h-12 w-full sm:w-auto px-8 rounded-xl"
+              className="h-11 sm:h-12 w-full sm:w-auto px-8 rounded-xl bg-rose-600 hover:bg-rose-700 text-white"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -260,10 +289,12 @@ export function WorkspaceActions({
       <Dialog open={isRemoveMemberOpen} onOpenChange={setIsRemoveMemberOpen}>
         <DialogContent
           className="
-      bg-[#0F0F12] border-white/10
-      rounded-[2.5rem] shadow-2xl
-      p-6 sm:p-8
-    "
+          bg-[#0F0F12] border-white/10
+          rounded-[2rem] shadow-2xl
+          w-[90vw] max-w-md
+          max-h-[85vh] overflow-y-auto
+          p-6 sm:p-8
+        "
         >
 
           <DialogHeader>
@@ -281,7 +312,7 @@ export function WorkspaceActions({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-5 sm:mt-6 space-y-3 max-h-[35vh] sm:max-h-[300px] overflow-y-auto pr-1">
+          <div className="mt-5 sm:mt-6 space-y-3 max-h-[40vh] overflow-y-auto pr-1">
             {workspace.members.map((member) => (
               <div
                 key={member.id}

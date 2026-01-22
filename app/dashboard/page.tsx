@@ -18,6 +18,7 @@ import {
   CheckCircle,
   PauseCircle,
   Archive,
+  Wallet,
 } from "lucide-react";
 
 import {
@@ -111,7 +112,7 @@ export default function DashboardPage() {
       });
   }, [workspaces, activeFilter, statusFilter, searchQuery, currentUser?.id]);
 
-  function useIsMobile(breakpoint = 640) {
+  function useIsMobile(breakpoint = 650) {
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
@@ -681,6 +682,13 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="flex items-center justify-end gap-2 pt-4 border-t border-white/5">
+                        {/* <Link
+                          href={`/workspace/${ws.id}/expenses`}
+                          className="inline-flex items-center justify-center h-10 w-10 rounded-xl border border-white/5 bg-white/5 hover:bg-emerald-500 hover:text-white hover:border-emerald-500/50 transition-all duration-300"
+                          title="View Expenses"
+                        >
+                          <Wallet className="h-4 w-4" />
+                        </Link> */}
                         <Link
                           href={`/workspace/${ws.id}`}
                           className="inline-flex items-center justify-center h-10 w-10 rounded-xl border border-white/5 bg-white/5 hover:bg-primary hover:text-primary-foreground hover:border-primary/50 transition-all duration-300"
